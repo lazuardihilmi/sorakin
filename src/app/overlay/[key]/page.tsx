@@ -113,8 +113,10 @@ export default function OBSOverlayPage() {
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
       
-      // Ignore initial connection message
-      if (data.type === "connect") return;
+      // Ignore initial connection message or widget-only events (no donation amount)
+      if (data.type === "connect" || data.amount === undefined || data.amount === null) {
+        return;
+      }
 
       console.log("New Tip Alert Received:", data);
       
