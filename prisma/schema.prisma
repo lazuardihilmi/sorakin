@@ -1,0 +1,130 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             Int          @id @default(autoincrement())
+  email          String       @unique
+  password       String       // Hashed password
+  name           String
+  username       String?      @unique // Personal username (nullable if not chosen)
+  phone          String?
+  isVerified     Boolean      @default(false) // Verified personal badge
+  createdAt      DateTime     @default(now())
+  creator        Creator?
+  donationsSent  Donation[]
+}
+
+model Creator {
+  id             Int              @id @default(autoincrement())
+  userId         Int              @unique
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  username       String           @unique // Custom page URL
+  category       String           // Musician, Gamer, etc.
+  description    String           // Max 300 chars
+  avatarUrl      String?
+  coverUrl       String?
+  balance        Float            @default(0.0) // Settled cashoutable balance
+  pendingBalance Float            @default(0.0) // Held balance awaiting settle
+  createdAt      DateTime         @default(now())
+  settings       CreatorSettings?
+  donations      Donation[]
+  settlements    Settlement[]
+  withdrawals    Withdrawal[]
+  overlay        OverlaySettings?
+}
+
+model CreatorSettings {
+  id                 Int      @id @default(autoincrement())
+  creatorId          Int      @unique
+  creator            Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  showFeed           Boolean  @default(false)
+  showAmount         Boolean  @default(false)
+  feeCoverage        String   @default("CREATOR") // "CREATOR" or "SUPPORTER"
+  quickAmounts       String   @default("10000,20000,50000,100000") // Comma-separated default values
+  socialInstagram    String?
+  socialFacebook     String?
+  socialX            String?
+  socialTiktok       String?
+  socialTwitch       String?
+  socialYoutube      String?
+  socialWebsite      String?
+  enableKeywordFilter Boolean @default(false)
+  customKeywords     String?  // Comma-separated list
+  blockRecentMedia   Boolean  @default(false)
+  discordWebhook     String?
+  discordTemplate    String?  // e.g. "{sender} tipped {amount}!"
+  customWebhookUrl   String?
+  customWebhookToken String?
+}
+
+model OverlaySettings {
+  id              Int      @id @default(autoincrement())
+  creatorId       Int      @unique
+  creator         Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  key             String   @unique // Unique random URL slug for OBS browser source
+  activeThemeId   Int      @default(1)
+  alertSoundUrl   String   @default("/sounds/default-alert.mp3")
+  alertImageUrl   String   @default("/images/default-alert.gif")
+  alertDuration   Int      @default(5) // In seconds
+  fontFamily      String   @default("Outfit")
+  fontSize        Int      @default(24)
+  backgroundColor String   @default("#00000000")
+  textColor       String   @default("#ffffff")
+  highlightColor  String   @default("#ffc107")
+  alertTemplate   String   @default("{sender} baru saja mengirim {amount}!\n\"{message}\"")
+}
+
+model Donation {
+  id            String      @id // midtrans order_id
+  creatorId     Int
+  creator       Creator     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  senderId      Int?
+  sender        User?       @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  senderName    String      // Inputted name
+  senderEmail   String      // Inputted email
+  message       String?
+  amount        Float       // Base support amount
+  serviceFee    Float       @default(0.0)
+  platformFee   Float       @default(0.0)
+  vatFee        Float       @default(0.0)
+  totalAmount   Float       // Grand total paid
+  paymentType   String      // "CREDIT_CARD", "QRIS", "GOPAY"
+  paymentStatus String      @default("PENDING") // "PENDING", "SUCCESS", "FAILED"
+  isAnonymous   Boolean     @default(false)
+  isVAT         Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  settledAt     DateTime?
+  settlements   Settlement[]
+}
+
+model Settlement {
+  id             Int      @id @default(autoincrement())
+  donationId     String
+  donation       Donation @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  creatorId      Int
+  creator        Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  amount         Float    // Net creator gain
+  settleSchedule DateTime // Transaction success + 24 hours (or 3 days for Credit Card)
+  status         String   @default("UNSETTLED") // "UNSETTLED" or "SETTLED"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Withdrawal {
+  id            Int      @id @default(autoincrement())
+  creatorId     Int
+  creator       Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  amount        Float
+  bankName      String
+  accountNumber String
+  accountName   String
+  status        String   @default("PENDING") // "PENDING", "SUCCESS", "FAILED"
+  createdAt     DateTime @default(now())
+}
