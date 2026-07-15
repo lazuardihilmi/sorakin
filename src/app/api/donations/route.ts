@@ -203,7 +203,7 @@ export async function POST(request: Request) {
 
     // Check if creator charges VAT (can be enabled via isVAT settings or default is true)
     // For simplicity, let's treat creator settings as charging VAT if configured. Let's make it configurable or check if user.creator wants it. Let's assume active by default for credit_card/qris if settings is custom.
-    const isVATEnabled = true; // VAT is enabled on platform level or settings flag
+    const isVATEnabled = false; // PPN dinonaktifkan sepenuhnya
 
     const feeCoverage = creator.settings?.feeCoverage || "CREATOR";
     const feeCalculation = calculateDonationFees(baseAmount, paymentType, feeCoverage, isVATEnabled);

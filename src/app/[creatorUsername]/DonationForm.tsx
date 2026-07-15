@@ -88,9 +88,9 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
     // Rounding
     serviceFee = Math.round(serviceFee * 100) / 100;
     
-    // VAT (11% on sum)
-    const vatFee = Math.round((amt + serviceFee + platformFee) * 0.11 * 100) / 100;
-    const totalFee = serviceFee + platformFee + vatFee;
+    // VAT is disabled (no PPN)
+    const vatFee = 0;
+    const totalFee = serviceFee + platformFee;
 
     let totalAmount = amt;
     if (feeCoverage === "SUPPORTER") {
@@ -98,11 +98,11 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
     }
 
     return {
-      serviceFee,
-      platformFee,
-      vatFee,
+      serviceFee: feeCoverage === "SUPPORTER" ? serviceFee : 0,
+      platformFee: feeCoverage === "SUPPORTER" ? platformFee : 0,
+      vatFee: 0,
       totalAmount: Math.round(totalAmount),
-      isVAT: true
+      isVAT: false
     };
   };
 
@@ -839,10 +839,6 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
             </span>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "var(--text-muted)" }}>Pajak (PPN 11%):</span>
-            <span>Rp {fees.vatFee.toLocaleString("id-ID")}</span>
-          </div>
 
           <div style={{
             display: "flex",
