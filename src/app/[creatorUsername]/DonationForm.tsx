@@ -98,8 +98,8 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
     }
 
     return {
-      serviceFee: feeCoverage === "SUPPORTER" ? serviceFee : 0,
-      platformFee: feeCoverage === "SUPPORTER" ? platformFee : 0,
+      serviceFee,
+      platformFee,
       vatFee: 0,
       totalAmount: Math.round(totalAmount),
       isVAT: false
@@ -832,9 +832,16 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
             <span>Rp {(parseFloat(amount) || 0).toLocaleString("id-ID")}</span>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "var(--text-muted)" }}>Biaya Layanan & Platform:</span>
-            <span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "4px" }}>
+              Biaya Layanan & Platform:
+              {creator.settings?.feeCoverage === "CREATOR" && (
+                <span style={{ fontSize: "11px", color: "var(--success)", fontWeight: "600", background: "#e6f4ea", padding: "2px 6px", borderRadius: "4px" }}>
+                  Ditanggung Kreator
+                </span>
+              )}
+            </span>
+            <span style={creator.settings?.feeCoverage === "CREATOR" ? { textDecoration: "line-through", color: "var(--text-muted)" } : {}}>
               Rp {(fees.serviceFee + fees.platformFee).toLocaleString("id-ID")}
             </span>
           </div>
