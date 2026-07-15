@@ -1,9 +1,18 @@
+export const runtime = "edge";
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import crypto from "crypto";
 import { triggerDonationAlert } from "@/lib/overlay-events";
 
 const MIDTRANS_SERVER_KEY = process.env.MIDTRANS_SERVER_KEY || "";
+
+async function sha512(message: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(message);
+  const hashBuffer = await crypto.subtle.digest("SHA-512", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
 
 export async function POST(request: Request) {
   try {
@@ -27,10 +36,7 @@ export async function POST(request: Request) {
     // 1. Verify Midtrans Signature Key
     // signature_key = SHA512(order_id + status_code + gross_amount + server_key)
     const signatureSource = `${order_id}${status_code}${gross_amount}${MIDTRANS_SERVER_KEY}`;
-    const calculatedSignature = crypto
-      .createHash("sha512")
-      .update(signatureSource)
-      .digest("hex");
+    const calculatedSignature = await sha512(signatureSource);
 
     if (calculatedSignature !== signature_key) {
       console.warn("Midtrans signature key verification failed.");

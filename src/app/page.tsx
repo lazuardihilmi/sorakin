@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { Coffee, Shield, Zap, Sparkles, Heart } from "lucide-react";

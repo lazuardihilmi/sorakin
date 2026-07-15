@@ -1,18 +1,8 @@
+export const runtime = "edge";
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import fs from "fs/promises";
-import path from "path";
-
-// Ensure upload directory exists
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
-async function ensureUploadDir() {
-  try {
-    await fs.access(UPLOAD_DIR);
-  } catch {
-    await fs.mkdir(UPLOAD_DIR, { recursive: true });
-  }
-}
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -141,34 +131,29 @@ export async function POST(request: Request) {
         const creator = await db.creator.findUnique({ where: { userId: user.id } });
         if (!creator) return NextResponse.json({ error: "Creator profile not found." }, { status: 404 });
 
-        await ensureUploadDir();
         const avatarFile = formData.get("avatar") as File | null;
         const coverFile = formData.get("cover") as File | null;
 
         const updateData: { avatarUrl?: string; coverUrl?: string } = {};
 
         if (avatarFile && avatarFile.size > 0) {
-          if (avatarFile.size > 5 * 1024 * 1024) {
-            return NextResponse.json({ error: "Ukuran avatar maksimal 5MB." }, { status: 400 });
+          if (avatarFile.size > 2 * 1024 * 1024) {
+            return NextResponse.json({ error: "Ukuran avatar maksimal 2MB." }, { status: 400 });
           }
-          const fileExt = path.extname(avatarFile.name) || ".jpg";
-          const fileName = `avatar-${creator.id}-${Date.now()}${fileExt}`;
-          const filePath = path.join(UPLOAD_DIR, fileName);
           const buffer = Buffer.from(await avatarFile.arrayBuffer());
-          await fs.writeFile(filePath, buffer);
-          updateData.avatarUrl = `/uploads/${fileName}`;
+          const base64Data = buffer.toString("base64");
+          const mimeType = avatarFile.type || "image/jpeg";
+          updateData.avatarUrl = `data:${mimeType};base64,${base64Data}`;
         }
 
         if (coverFile && coverFile.size > 0) {
-          if (coverFile.size > 5 * 1024 * 1024) {
-            return NextResponse.json({ error: "Ukuran cover maksimal 5MB." }, { status: 400 });
+          if (coverFile.size > 2 * 1024 * 1024) {
+            return NextResponse.json({ error: "Ukuran cover maksimal 2MB." }, { status: 400 });
           }
-          const fileExt = path.extname(coverFile.name) || ".jpg";
-          const fileName = `cover-${creator.id}-${Date.now()}${fileExt}`;
-          const filePath = path.join(UPLOAD_DIR, fileName);
           const buffer = Buffer.from(await coverFile.arrayBuffer());
-          await fs.writeFile(filePath, buffer);
-          updateData.coverUrl = `/uploads/${fileName}`;
+          const base64Data = buffer.toString("base64");
+          const mimeType = coverFile.type || "image/jpeg";
+          updateData.coverUrl = `data:${mimeType};base64,${base64Data}`;
         }
 
         const updatedCreator = await db.creator.update({
