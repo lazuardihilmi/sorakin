@@ -155,6 +155,10 @@ export async function POST(request: Request) {
       isAnonymous,
       token_id, // For credit card CC token from client
       isVerifiedUser,
+      votingOptionId,
+      mediashareVidId,
+      mediashareTitle,
+      soundboardSoundId,
     } = body;
 
     if (!creatorUsername || !senderName || !senderEmail || !amount || !paymentType) {
@@ -279,6 +283,10 @@ export async function POST(request: Request) {
         paymentStatus: "PENDING",
         isAnonymous: !!isAnonymous,
         isVAT: isVATEnabled,
+        votingOptionId: votingOptionId ? parseInt(votingOptionId) : null,
+        mediashareVidId: mediashareVidId || null,
+        mediashareTitle: mediashareTitle || null,
+        soundboardSoundId: soundboardSoundId ? parseInt(soundboardSoundId) : null,
       }
     });
 

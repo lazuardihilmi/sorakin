@@ -96,6 +96,12 @@ export async function POST(request: Request) {
       const settleSchedule = new Date();
       settleSchedule.setHours(settleSchedule.getHours() + (isCC ? 72 : 24));
 
+      let updatedMilestone: any = null;
+      let updatedSubathon: any = null;
+      let updatedVoting: any = null;
+      let triggeredSound: any = null;
+      let addedVideo: any = null;
+
       await db.$transaction(async (tx) => {
         // Mark donation as paid
         await tx.donation.update({
@@ -126,6 +132,81 @@ export async function POST(request: Request) {
             status: "UNSETTLED",
           }
         });
+
+        // 1. Milestone Goal progress increment
+        const activeMilestone = await tx.milestoneGoal.findUnique({
+          where: { creatorId: donation.creator.id }
+        });
+        if (activeMilestone && activeMilestone.isActive) {
+          updatedMilestone = await tx.milestoneGoal.update({
+            where: { id: activeMilestone.id },
+            data: {
+              currentAmount: {
+                increment: donation.amount
+              }
+            }
+          });
+        }
+
+        // 2. Subathon Timer extension
+        const activeSubathon = await tx.subathonTimer.findUnique({
+          where: { creatorId: donation.creator.id }
+        });
+        if (activeSubathon && activeSubathon.isActive) {
+          const addedSeconds = Math.round(donation.amount * activeSubathon.secondsPerRupiah);
+          const newRemaining = Math.min(
+            activeSubathon.remainingSeconds + addedSeconds,
+            activeSubathon.maxSeconds
+          );
+          updatedSubathon = await tx.subathonTimer.update({
+            where: { id: activeSubathon.id },
+            data: {
+              remainingSeconds: newRemaining,
+              lastUpdatedAt: new Date()
+            }
+          });
+        }
+
+        // 3. Voting choice increment
+        if (donation.votingOptionId) {
+          const option = await tx.votingOption.update({
+            where: { id: donation.votingOptionId },
+            data: {
+              votesCount: {
+                increment: donation.amount
+              }
+            }
+          });
+          
+          updatedVoting = await tx.votingPoll.findUnique({
+            where: { creatorId: donation.creator.id },
+            include: { options: true }
+          });
+        }
+
+        // 4. Mediashare insertion
+        if (donation.mediashareVidId) {
+          addedVideo = await tx.mediashareQueue.create({
+            data: {
+              creatorId: donation.creatorId,
+              youtubeId: donation.mediashareVidId,
+              title: donation.mediashareTitle || "YouTube Video",
+              senderName: donation.senderName,
+              duration: 180, // Default 3 mins
+              status: "PENDING"
+            }
+          });
+        }
+
+        // 5. Soundboard sound check
+        if (donation.soundboardSoundId) {
+          const sound = await tx.soundboardSound.findUnique({
+            where: { id: donation.soundboardSoundId }
+          });
+          if (sound && sound.isActive && donation.amount >= sound.price) {
+            triggeredSound = sound;
+          }
+        }
       });
 
       // 5. Trigger live OBS Overlay Alert
@@ -147,6 +228,12 @@ export async function POST(request: Request) {
           textColor: donation.creator.overlay.textColor,
           highlightColor: donation.creator.overlay.highlightColor,
           alertTemplate: donation.creator.overlay.alertTemplate,
+          // Widgets payload
+          milestoneGoal: updatedMilestone,
+          subathonTimer: updatedSubathon,
+          votingPoll: updatedVoting,
+          soundboardPlay: triggeredSound,
+          mediashareAdd: addedVideo,
         });
       }
 

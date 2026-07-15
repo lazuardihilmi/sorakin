@@ -28,6 +28,12 @@ export interface DonationAlertEvent {
   textColor: string;
   highlightColor: string;
   alertTemplate: string;
+  // Dynamic Widget Extensions
+  milestoneGoal?: any;
+  subathonTimer?: any;
+  votingPoll?: any;
+  soundboardPlay?: any;
+  mediashareAdd?: any;
 }
 
 export function triggerDonationAlert(creatorKey: string, alert: DonationAlertEvent) {

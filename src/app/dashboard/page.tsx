@@ -83,6 +83,273 @@ export default function DashboardPage() {
   const [showVerifiedModal, setShowVerifiedModal] = useState(false);
   const [confettiActive, setConfettiActive] = useState(false);
 
+  // Dynamic Widgets states
+  const [widgetSubTab, setWidgetSubTab] = useState<string>("links");
+  const [widgetsInfo, setWidgetsInfo] = useState<any>(null);
+  const [mediashareQueue, setMediashareQueue] = useState<any[]>([]);
+
+  // Milestone input states
+  const [msTitle, setMsTitle] = useState("");
+  const [msTarget, setMsTarget] = useState("");
+  const [msActive, setMsActive] = useState(true);
+
+  // Subathon input states
+  const [sbSeconds, setSbSeconds] = useState("3600");
+  const [sbRate, setSbRate] = useState("0.01");
+  const [sbMax, setSbMax] = useState("86400");
+  const [sbActive, setSbActive] = useState(false);
+
+  // Poll input states
+  const [pollTitleInput, setPollTitleInput] = useState("");
+  const [pollOptionsInput, setPollOptionsInput] = useState("");
+
+  // Soundboard input states
+  const [sbSoundName, setSbSoundName] = useState("");
+  const [sbSoundUrl, setSbSoundUrl] = useState("");
+  const [sbSoundPrice, setSbSoundPrice] = useState("10000");
+
+  const fetchWidgetsData = async () => {
+    if (activeMode !== "creator") return;
+    try {
+      const res = await fetch("/api/creator/widgets");
+      const data = await res.json();
+      if (res.ok) {
+        setWidgetsInfo(data);
+        if (data.milestoneGoal) {
+          setMsTitle(data.milestoneGoal.title);
+          setMsTarget(data.milestoneGoal.targetAmount.toString());
+          setMsActive(data.milestoneGoal.isActive);
+        }
+        if (data.subathonTimer) {
+          setSbSeconds(data.subathonTimer.remainingSeconds.toString());
+          setSbRate(data.subathonTimer.secondsPerRupiah.toString());
+          setSbMax(data.subathonTimer.maxSeconds.toString());
+          setSbActive(data.subathonTimer.isActive);
+        }
+        if (data.votingPoll) {
+          setPollTitleInput(data.votingPoll.title);
+          setPollOptionsInput(data.votingPoll.options.map((o: any) => o.name).join(", "));
+        }
+      }
+
+      const mRes = await fetch("/api/creator/widgets/mediashare");
+      const mData = await mRes.json();
+      if (mRes.ok) {
+        setMediashareQueue(mData.queue || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSaveMilestone = async (e: React.FormEvent, resetCurrent = false) => {
+    e.preventDefault();
+    setSaving(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const res = await fetch("/api/creator/widgets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "milestone",
+          title: msTitle,
+          targetAmount: msTarget,
+          isActive: msActive,
+          resetCurrent
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSuccessMsg("Milestone goal berhasil disimpan!");
+      fetchWidgetsData();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveSubathon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const res = await fetch("/api/creator/widgets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "subathon",
+          remainingSeconds: sbSeconds,
+          secondsPerRupiah: sbRate,
+          maxSeconds: sbMax,
+          isActive: sbActive
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSuccessMsg("Timer subathon berhasil diperbarui!");
+      fetchWidgetsData();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePoll = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const optionsArray = pollOptionsInput
+        .split(",")
+        .map((o) => o.trim())
+        .filter((o) => o.length > 0);
+
+      const res = await fetch("/api/creator/widgets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "poll",
+          title: pollTitleInput,
+          options: optionsArray,
+          isActive: true
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSuccessMsg("Polling suara baru berhasil diaktifkan!");
+      fetchWidgetsData();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClosePoll = async () => {
+    setSaving(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const res = await fetch("/api/creator/widgets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "poll",
+          isActive: false
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSuccessMsg("Polling suara berhasil dinonaktifkan.");
+      fetchWidgetsData();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddSound = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const res = await fetch("/api/creator/widgets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "soundboard_add",
+          name: sbSoundName,
+          soundUrl: sbSoundUrl,
+          price: sbSoundPrice
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSuccessMsg("Efek suara berhasil ditambahkan!");
+      setSbSoundName("");
+      setSbSoundUrl("");
+      setSbSoundPrice("10000");
+      fetchWidgetsData();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteSound = async (id: number) => {
+    setSaving(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const res = await fetch("/api/creator/widgets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "soundboard_delete",
+          id
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSuccessMsg("Efek suara berhasil dihapus.");
+      fetchWidgetsData();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleMediashareAction = async (id: number, action: string) => {
+    setSaving(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const res = await fetch("/api/creator/widgets/mediashare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSuccessMsg(`Aksi Media Share (${action}) berhasil dijalankan!`);
+      fetchWidgetsData();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClearMediashareQueue = async () => {
+    setSaving(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const res = await fetch("/api/creator/widgets/mediashare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "clear" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSuccessMsg("Semua antrean Media Share berhasil dibersihkan!");
+      fetchWidgetsData();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Fetch user session data
   const fetchSession = async () => {
     try {
@@ -763,7 +1030,7 @@ export default function DashboardPage() {
                     borderRadius: "var(--border-radius-md)"
                   }}
                 >
-                  <Bell size={18} /> Overlay OBS Alerts
+                  <Bell size={18} /> Widget & Overlay OBS
                 </button>
               </>
             )}
@@ -1531,194 +1798,569 @@ export default function DashboardPage() {
           {/* TAB 5: Overlay configuration */}
           {activeTab === "overlay" && activeMode === "creator" && hasCreatorProfile && (
             <div className="card" style={{ background: "white" }}>
-              <h2 style={{ fontSize: "22px", marginBottom: "10px" }}>OBS Overlay Setup</h2>
-              <p style={{ color: "var(--text-muted)", fontSize: "14px", marginBottom: "24px" }}>
-                Salin tautan overlay di bawah ini dan tempelkan sebagai **Browser Source** di OBS Studio Anda untuk menampilkan notifikasi alert interaktif secara real-time.
+              <h2 style={{ fontSize: "22px", marginBottom: "10px" }}>Widget & Overlay Center</h2>
+              <p style={{ color: "var(--text-muted)", fontSize: "14px", marginBottom: "20px" }}>
+                Kelola tautan OBS browser source Anda dan konfigurasikan widget interaktif streaming.
               </p>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                {/* OBS Tautan Copy area */}
-                <div className="form-group">
-                  <label className="form-label">Tautan Browser Source OBS</label>
-                  <div style={{ display: "flex", gap: "10px" }}>
+              {/* Sub-tab navigation menu */}
+              <div style={{ display: "flex", gap: "8px", borderBottom: "1px solid var(--border-color)", paddingBottom: "12px", marginBottom: "24px", overflowX: "auto" }}>
+                {[
+                  { id: "links", label: "🔗 Tautan OBS" },
+                  { id: "alert", label: "🔔 Kustom Alert" },
+                  { id: "milestone", label: "🎯 Milestone Goal" },
+                  { id: "subathon", label: "⏱️ Subathon Timer" },
+                  { id: "voting", label: "🗳️ Polling Suara" },
+                  { id: "soundboard", label: "🔊 Soundboard" },
+                  { id: "mediashare", label: "🎥 Media Share" }
+                ].map((st) => (
+                  <button
+                    key={st.id}
+                    type="button"
+                    onClick={() => setWidgetSubTab(st.id)}
+                    className="btn"
+                    style={{
+                      padding: "6px 14px",
+                      fontSize: "12px",
+                      borderRadius: "100px",
+                      fontWeight: "700",
+                      backgroundColor: widgetSubTab === st.id ? "var(--primary)" : "transparent",
+                      color: widgetSubTab === st.id ? "white" : "var(--text-main)",
+                      border: widgetSubTab === st.id ? "1px solid var(--primary)" : "1px solid var(--border-color)"
+                    }}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sub-tab panels */}
+              {widgetSubTab === "links" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <h3 style={{ fontSize: "16px", fontWeight: "700" }}>OBS Browser Source Links</h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>
+                    Salin URL di bawah ini lalu tempelkan sebagai <strong>Browser Source</strong> di OBS Studio dengan lebar 640px dan tinggi 480px (atau kustom).
+                  </p>
+                  
+                  {[
+                    { label: "1. Tipping Alert Overlay (Live Notifikasi & TTS)", path: "" },
+                    { label: "2. Media Share Overlay (Pemutar YouTube Video)", path: "/mediashare" },
+                    { label: "3. Soundboard Audio Overlay (Pemutar Efek Suara)", path: "/soundboard" },
+                    { label: "4. Subathon Timer Widget (Hitung Mundur Subathon)", path: "/subathon" },
+                    { label: "5. Voting / Polling Result Widget (Bar Chart Polling)", path: "/voting" },
+                    { label: "6. QR Code Screen Widget (Pindai QR Donasi)", path: "/qr" },
+                    { label: "7. Milestone Goal Widget (Progress Bar Target)", path: "/milestone" },
+                    { label: "8. Leaderboard Widget (Top Kontributor Teratas)", path: "/leaderboard" },
+                    { label: "9. Running Text / Ticker Widget (Recent Tips Berjalan)", path: "/running-text" }
+                  ].map((item, idx) => {
+                    const fullUrl = `${window.location.origin}/overlay/${session.creator.overlay.key}${item.path}`;
+                    return (
+                      <div key={idx} className="form-group" style={{ background: "#fcfcfa", padding: "12px", border: "1px solid var(--border-color)", borderRadius: "8px", marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontSize: "12px", fontWeight: "700" }}>{item.label}</label>
+                        <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                          <input
+                            type="text"
+                            readOnly
+                            value={fullUrl}
+                            className="input-field"
+                            style={{ flex: 1, fontFamily: "monospace", fontSize: "11px", height: "32px", background: "white" }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(fullUrl);
+                              setSuccessMsg(`Tautan ${item.label.split(". ")[1]} disalin!`);
+                              setTimeout(() => setSuccessMsg(""), 2000);
+                            }}
+                            className="btn btn-secondary"
+                            style={{ padding: "0 10px", height: "32px" }}
+                          >
+                            <Copy size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {widgetSubTab === "alert" && (
+                <div>
+                  <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
+                    <button onClick={handleTestOverlayAlert} className="btn btn-primary" style={{ padding: "8px 16px", fontSize: "13px" }}>
+                      <Play size={14} /> Tes Alert Suara (Uji Coba Overlay)
+                    </button>
+                    <Link href={`/overlay/${session.creator.overlay.key}`} target="_blank" className="btn btn-secondary" style={{ padding: "8px 16px", fontSize: "13px" }}>
+                      Buka Tipping Alert di Tab Baru
+                    </Link>
+                  </div>
+
+                  <form onSubmit={handleSaveSettings} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                    <h3 style={{ fontSize: "16px", fontWeight: "700" }}>Kustomisasi Overlay Tampilan</h3>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                      <div className="form-group">
+                        <label className="form-label">Template Kalimat Alert</label>
+                        <input
+                          type="text"
+                          value={discordTemplate}
+                          onChange={(e) => setDiscordTemplate(e.target.value)}
+                          className="input-field"
+                          placeholder="Gunakan {sender} dan {amount} untuk kustomisasi"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Durasi Alert Tampil (Detik)</label>
+                        <input
+                          type="number"
+                          defaultValue={5}
+                          className="input-field"
+                          min={3}
+                          max={30}
+                        />
+                      </div>
+                    </div>
+
+                    <h3 style={{ fontSize: "16px", fontWeight: "700", borderTop: "1px solid var(--border-color)", paddingTop: "20px" }}>Integrasi & Pengaturan Tipping</h3>
+                    
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                      <div className="form-group">
+                        <label className="form-label">Fee ditanggung siapa?</label>
+                        <select
+                          value={feeCoverage}
+                          onChange={(e) => setFeeCoverage(e.target.value)}
+                          className="input-field"
+                        >
+                          <option value="CREATOR">Fee ditanggung kreator (Dipotong dari tip)</option>
+                          <option value="SUPPORTER">Fee ditanggung pendukung (Ditambah ke total bayar)</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Nominal Cepat (Dukungan Cepat)</label>
+                        <input
+                          type="text"
+                          value={quickAmounts}
+                          onChange={(e) => setQuickAmounts(e.target.value)}
+                          className="input-field"
+                          placeholder="Contoh: 10000,20000,50000,100000"
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <input
+                            type="checkbox"
+                            checked={enableKeywordFilter}
+                            onChange={(e) => setEnableKeywordFilter(e.target.checked)}
+                            style={{ accentColor: "var(--primary)" }}
+                          />
+                          Aktifkan Filter Kata-kata Kasar (Toxic Filter)
+                        </label>
+                      </div>
+
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label">Custom Keyword Filter Tambahan</label>
+                        <input
+                          type="text"
+                          value={customKeywords}
+                          onChange={(e) => setCustomKeywords(e.target.value)}
+                          className="input-field"
+                          placeholder="anjing,babi,dsb"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Discord Webhook integrations */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", borderTop: "1px solid var(--border-color)", paddingTop: "20px" }}>
+                      <div className="form-group">
+                        <label className="form-label">Discord Webhook URL</label>
+                        <input
+                          type="text"
+                          value={discordWebhook}
+                          onChange={(e) => setDiscordWebhook(e.target.value)}
+                          className="input-field"
+                          placeholder="https://discord.com/api/webhooks/..."
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Template Chat Notifikasi Discord</label>
+                        <input
+                          type="text"
+                          value={discordTemplate}
+                          onChange={(e) => setDiscordTemplate(e.target.value)}
+                          className="input-field"
+                          placeholder="{sender} baru saja mengirim {amount}!"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Social media inputs */}
+                    <h3 style={{ fontSize: "16px", fontWeight: "700", borderTop: "1px solid var(--border-color)", paddingTop: "20px" }}>Sosial Media</h3>
+                    
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "15px" }}>
+                      <div className="form-group">
+                        <label className="form-label">Instagram Link</label>
+                        <input
+                          type="text"
+                          value={socialInstagram}
+                          onChange={(e) => setSocialInstagram(e.target.value)}
+                          className="input-field"
+                          placeholder="https://instagram.com/username"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Youtube Link</label>
+                        <input
+                          type="text"
+                          value={socialYoutube}
+                          onChange={(e) => setSocialYoutube(e.target.value)}
+                          className="input-field"
+                          placeholder="https://youtube.com/c/channel"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Website Link</label>
+                        <input
+                          type="text"
+                          value={socialWebsite}
+                          onChange={(e) => setSocialWebsite(e.target.value)}
+                          className="input-field"
+                          placeholder="https://mywebsite.com"
+                        />
+                      </div>
+                    </div>
+
+                    <button type="submit" disabled={saving} className="btn btn-primary" style={{ alignSelf: "flex-start", marginTop: "10px" }}>
+                      {saving ? "Menyimpan..." : "Simpan Pengaturan"}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {widgetSubTab === "milestone" && (
+                <form onSubmit={(e) => handleSaveMilestone(e, false)} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                  <h3 style={{ fontSize: "16px", fontWeight: "700" }}>Milestone Goal (Target Penggalangan Dana)</h3>
+                  
+                  <div className="form-group">
+                    <label className="form-label">Judul Target Milestone</label>
                     <input
                       type="text"
-                      readOnly
-                      value={`${window.location.origin}/overlay/${session.creator.overlay.key}`}
+                      value={msTitle}
+                      onChange={(e) => setMsTitle(e.target.value)}
                       className="input-field"
-                      style={{ flex: 1, fontFamily: "monospace", fontSize: "12px", background: "var(--bg-surface-alt)" }}
+                      placeholder="Contoh: Beli Microphone Stream Baru"
+                      required
                     />
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/overlay/${session.creator.overlay.key}`);
-                        setCopiedKey(true);
-                        setTimeout(() => setCopiedKey(false), 2000);
-                      }}
-                      className="btn btn-secondary"
-                      style={{ flexShrink: 0 }}
-                    >
-                      {copiedKey ? <Check size={16} /> : <Copy size={16} />}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Jumlah Target Dana (Rp)</label>
+                    <input
+                      type="number"
+                      value={msTarget}
+                      onChange={(e) => setMsTarget(e.target.value)}
+                      className="input-field"
+                      placeholder="Contoh: 1500000"
+                      min={1000}
+                      required
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <input
+                      type="checkbox"
+                      id="msActiveCheck"
+                      checked={msActive}
+                      onChange={(e) => setMsActive(e.target.checked)}
+                      style={{ width: "16px", height: "16px", accentColor: "var(--primary)" }}
+                    />
+                    <label htmlFor="msActiveCheck" style={{ fontSize: "13px", color: "var(--text-muted)", cursor: "pointer", fontWeight: "600" }}>
+                      Aktifkan Milestone Goal di Live Stream Overlay
+                    </label>
+                  </div>
+
+                  {widgetsInfo?.milestoneGoal && (
+                    <div style={{ background: "#fcfcfa", padding: "14px", border: "1px solid var(--border-color)", borderRadius: "8px", fontSize: "13px" }}>
+                      <div>Progress Saat Ini: <strong>Rp {widgetsInfo.milestoneGoal.currentAmount.toLocaleString("id-ID")}</strong> / Rp {widgetsInfo.milestoneGoal.targetAmount.toLocaleString("id-ID")} ({((widgetsInfo.milestoneGoal.currentAmount / widgetsInfo.milestoneGoal.targetAmount) * 100).toFixed(0)}%)</div>
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button type="submit" disabled={saving} className="btn btn-primary">
+                      {saving ? "Menyimpan..." : "Simpan Milestone"}
+                    </button>
+                    <button type="button" onClick={(e) => handleSaveMilestone(e, true)} disabled={saving} className="btn btn-secondary" style={{ borderColor: "var(--error)", color: "var(--error)" }}>
+                      Reset Progress ke Rp 0
                     </button>
                   </div>
-                </div>
+                </form>
+              )}
 
-                <div style={{ display: "flex", gap: "12px" }}>
-                  <button onClick={handleTestOverlayAlert} className="btn btn-primary">
-                    <Play size={16} /> Tes Notifikasi (Overlay Simulator)
-                  </button>
-                  <Link href={`/overlay/${session.creator.overlay.key}`} target="_blank" className="btn btn-secondary">
-                    Buka Halaman Overlay di Tab Baru
-                  </Link>
-                </div>
-
-                {/* Configuration form for Overlay visual */}
-                <form onSubmit={handleSaveSettings} style={{ display: "flex", flexDirection: "column", gap: "20px", borderTop: "1px solid var(--border-color)", paddingTop: "24px" }}>
-                  <h3 style={{ fontSize: "18px" }}>Kustomisasi Overlay Tampilan</h3>
+              {widgetSubTab === "subathon" && (
+                <form onSubmit={handleSaveSubathon} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                  <h3 style={{ fontSize: "16px", fontWeight: "700" }}>Subathon Timer (Countdown Jam Hitung Mundur)</h3>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
                     <div className="form-group">
-                      <label className="form-label">Template Kalimat Alert</label>
-                      <input
-                        type="text"
-                        value={discordTemplate} // wait, template overlay template
-                        onChange={(e) => setDiscordTemplate(e.target.value)}
-                        className="input-field"
-                        placeholder="Gunakan {sender} dan {amount} untuk kustomisasi"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Durasi Alert Tampil (Detik)</label>
+                      <label className="form-label">Sisa Waktu Timer (Detik)</label>
                       <input
                         type="number"
-                        defaultValue={5}
+                        value={sbSeconds}
+                        onChange={(e) => setSbSeconds(e.target.value)}
                         className="input-field"
-                        min={3}
-                        max={30}
+                        placeholder="Contoh: 3600 (1 jam)"
+                        required
+                      />
+                      <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                        Tip: 1 jam = 3600 detik, 5 jam = 18000 detik
+                      </span>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Detik Ditambah Per Rp 1 (Rasio Detik/Rupiah)</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={sbRate}
+                        onChange={(e) => setSbRate(e.target.value)}
+                        className="input-field"
+                        placeholder="Contoh: 0.01 (10 detik per Rp 1.000)"
+                        required
                       />
                     </div>
                   </div>
 
-                  <h3 style={{ fontSize: "18px", borderTop: "1px solid var(--border-color)", paddingTop: "24px" }}>Integrasi & Pengaturan Tipping</h3>
-                  
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-                    <div className="form-group">
-                      <label className="form-label">Fee ditanggung siapa?</label>
-                      <select
-                        value={feeCoverage}
-                        onChange={(e) => setFeeCoverage(e.target.value)}
-                        className="input-field"
-                      >
-                        <option value="CREATOR">Fee ditanggung kreator (Dipotong dari tip)</option>
-                        <option value="SUPPORTER">Fee ditanggung pendukung (Ditambah ke total bayar)</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Nominal Cepat (Dukungan Cepat)</label>
-                      <input
-                        type="text"
-                        value={quickAmounts}
-                        onChange={(e) => setQuickAmounts(e.target.value)}
-                        className="input-field"
-                        placeholder="Contoh: 10000,20000,50000,100000"
-                      />
-                    </div>
+                  <div className="form-group">
+                    <label className="form-label">Batas Maksimum Timer (Detik)</label>
+                    <input
+                      type="number"
+                      value={sbMax}
+                      onChange={(e) => setSbMax(e.target.value)}
+                      className="input-field"
+                      placeholder="Contoh: 86400 (24 jam)"
+                      required
+                    />
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <input
-                          type="checkbox"
-                          checked={enableKeywordFilter}
-                          onChange={(e) => setEnableKeywordFilter(e.target.checked)}
-                          style={{ accentColor: "var(--primary)" }}
-                        />
-                        Aktifkan Filter Kata-kata Kasar (Toxic Filter)
-                      </label>
-                    </div>
-
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label">Custom Keyword Filter Tambahan (pisahkan dengan koma)</label>
-                      <input
-                        type="text"
-                        value={customKeywords}
-                        onChange={(e) => setCustomKeywords(e.target.value)}
-                        className="input-field"
-                        placeholder="anjing,babi,dsb"
-                      />
-                    </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <input
+                      type="checkbox"
+                      id="sbActiveCheck"
+                      checked={sbActive}
+                      onChange={(e) => setSbActive(e.target.checked)}
+                      style={{ width: "16px", height: "16px", accentColor: "var(--primary)" }}
+                    />
+                    <label htmlFor="sbActiveCheck" style={{ fontSize: "13px", color: "var(--text-muted)", cursor: "pointer", fontWeight: "600" }}>
+                      Aktifkan Timer Subathon (Mulai Berjalan Mundur)
+                    </label>
                   </div>
 
-                  {/* Discord Webhook integrations */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", borderTop: "1px solid var(--border-color)", paddingTop: "24px" }}>
-                    <div className="form-group">
-                      <label className="form-label">Discord Webhook URL</label>
-                      <input
-                        type="text"
-                        value={discordWebhook}
-                        onChange={(e) => setDiscordWebhook(e.target.value)}
-                        className="input-field"
-                        placeholder="https://discord.com/api/webhooks/..."
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Template Chat Notifikasi Discord</label>
-                      <input
-                        type="text"
-                        value={discordTemplate}
-                        onChange={(e) => setDiscordTemplate(e.target.value)}
-                        className="input-field"
-                        placeholder="{sender} baru saja mengirim {amount}!"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Social media inputs */}
-                  <h3 style={{ fontSize: "18px", borderTop: "1px solid var(--border-color)", paddingTop: "24px" }}>Sosial Media</h3>
-                  
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "15px" }}>
-                    <div className="form-group">
-                      <label className="form-label">Instagram Link</label>
-                      <input
-                        type="text"
-                        value={socialInstagram}
-                        onChange={(e) => setSocialInstagram(e.target.value)}
-                        className="input-field"
-                        placeholder="https://instagram.com/username"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Youtube Link</label>
-                      <input
-                        type="text"
-                        value={socialYoutube}
-                        onChange={(e) => setSocialYoutube(e.target.value)}
-                        className="input-field"
-                        placeholder="https://youtube.com/c/channel"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Website Link</label>
-                      <input
-                        type="text"
-                        value={socialWebsite}
-                        onChange={(e) => setSocialWebsite(e.target.value)}
-                        className="input-field"
-                        placeholder="https://mywebsite.com"
-                      />
-                    </div>
-                  </div>
-
-                  <button type="submit" disabled={saving} className="btn btn-primary" style={{ alignSelf: "flex-start", marginTop: "10px" }}>
-                    {saving ? "Menyimpan..." : "Simpan Pengaturan"}
+                  <button type="submit" disabled={saving} className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
+                    {saving ? "Memperbarui..." : "Update Timer Subathon"}
                   </button>
                 </form>
-              </div>
+              )}
+
+              {widgetSubTab === "voting" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                  <form onSubmit={handleSavePoll} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                    <h3 style={{ fontSize: "16px", fontWeight: "700" }}>Mulai Polling Suara Baru</h3>
+                    
+                    <div className="form-group">
+                      <label className="form-label">Pertanyaan / Topik Polling</label>
+                      <input
+                        type="text"
+                        value={pollTitleInput}
+                        onChange={(e) => setPollTitleInput(e.target.value)}
+                        className="input-field"
+                        placeholder="Contoh: Main Game Apa Selanjutnya?"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Pilihan Jawaban (pisahkan dengan koma)</label>
+                      <input
+                        type="text"
+                        value={pollOptionsInput}
+                        onChange={(e) => setPollOptionsInput(e.target.value)}
+                        className="input-field"
+                        placeholder="Contoh: GTA V, Mobile Legends, Valorant"
+                        required
+                      />
+                    </div>
+
+                    <button type="submit" disabled={saving} className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
+                      Buat Polling Baru (Mengganti Polling Lama)
+                    </button>
+                  </form>
+
+                  {widgetsInfo?.votingPoll && (
+                    <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "20px" }}>
+                      <h3 style={{ fontSize: "15px", fontWeight: "700", marginBottom: "12px" }}>Polling Aktif Saat Ini</h3>
+                      <div style={{ background: "#fcfcfa", padding: "16px", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
+                        <div style={{ fontSize: "14px", fontWeight: "700", marginBottom: "12px" }}>"{widgetsInfo.votingPoll.title}"</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          {widgetsInfo.votingPoll.options.map((opt: any) => (
+                            <div key={opt.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", borderBottom: "1px solid #f0f0ed", paddingBottom: "6px", width: "100%" }}>
+                              <span>{opt.name}</span>
+                              <strong>Rp {opt.votesCount.toLocaleString("id-ID")}</strong>
+                            </div>
+                          ))}
+                        </div>
+                        {widgetsInfo.votingPoll.isActive ? (
+                          <button type="button" onClick={handleClosePoll} className="btn btn-secondary" style={{ marginTop: "16px", borderColor: "var(--error)", color: "var(--error)", padding: "6px 12px", fontSize: "12px" }}>
+                            Tutup & Nonaktifkan Polling
+                          </button>
+                        ) : (
+                          <div style={{ color: "var(--error)", fontSize: "12px", fontWeight: "600", marginTop: "12px" }}>Polling ini Sudah Ditutup</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {widgetSubTab === "soundboard" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                  <form onSubmit={handleAddSound} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                    <h3 style={{ fontSize: "16px", fontWeight: "700" }}>Tambah Efek Suara Baru</h3>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                      <div className="form-group">
+                        <label className="form-label">Nama Efek Suara</label>
+                        <input
+                          type="text"
+                          value={sbSoundName}
+                          onChange={(e) => setSbSoundName(e.target.value)}
+                          className="input-field"
+                          placeholder="Contoh: Ketawa Kuntilanak, Jumpscare"
+                          required
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Minimal Dukungan Pemicu (Rp)</label>
+                        <input
+                          type="number"
+                          value={sbSoundPrice}
+                          onChange={(e) => setSbSoundPrice(e.target.value)}
+                          className="input-field"
+                          placeholder="Contoh: 10000"
+                          min={1000}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">URL Berkas Audio MP3 (Direct link file audio)</label>
+                      <input
+                        type="text"
+                        value={sbSoundUrl}
+                        onChange={(e) => setSbSoundUrl(e.target.value)}
+                        className="input-field"
+                        placeholder="Contoh: https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav"
+                        required
+                      />
+                    </div>
+
+                    <button type="submit" disabled={saving} className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
+                      Tambah Suara
+                    </button>
+                  </form>
+
+                  <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "20px" }}>
+                    <h3 style={{ fontSize: "15px", fontWeight: "700", marginBottom: "12px" }}>Daftar Soundboard Kreator</h3>
+                    {widgetsInfo?.soundboardSounds?.length > 0 ? (
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                        <thead>
+                          <tr style={{ borderBottom: "2px solid var(--border-color)", textAlign: "left" }}>
+                            <th style={{ padding: "8px" }}>Nama</th>
+                            <th style={{ padding: "8px" }}>Min. Tip</th>
+                            <th style={{ padding: "8px" }}>URL</th>
+                            <th style={{ padding: "8px", textAlign: "right" }}>Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {widgetsInfo.soundboardSounds.map((sound: any) => (
+                            <tr key={sound.id} style={{ borderBottom: "1px solid #f0f0ed" }}>
+                              <td style={{ padding: "8px", fontWeight: "700" }}>{sound.name}</td>
+                              <td style={{ padding: "8px" }}>Rp {sound.price.toLocaleString("id-ID")}</td>
+                              <td style={{ padding: "8px", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sound.soundUrl}</td>
+                              <td style={{ padding: "8px", textAlign: "right" }}>
+                                <button type="button" onClick={() => handleDeleteSound(sound.id)} className="btn btn-secondary" style={{ padding: "4px 8px", fontSize: "11px", borderColor: "var(--error)", color: "var(--error)" }}>
+                                  Hapus
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div style={{ color: "var(--text-muted)", fontSize: "13px" }}>Belum ada efek suara ditambahkan. Suporter tidak akan melihat tab Soundboard jika daftar kosong.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {widgetSubTab === "mediashare" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                    <h3 style={{ fontSize: "16px", fontWeight: "700" }}>Playlist Antrean Media Share</h3>
+                    <button type="button" onClick={handleClearMediashareQueue} className="btn btn-secondary" style={{ borderColor: "var(--error)", color: "var(--error)", padding: "6px 12px", fontSize: "12px" }}>
+                      Kosongkan Antrean
+                    </button>
+                  </div>
+
+                  {mediashareQueue.length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      {mediashareQueue.map((item) => (
+                        <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fcfcfa", padding: "12px", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
+                          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                            <img
+                              src={`https://img.youtube.com/vi/${item.youtubeId}/mqdefault.jpg`}
+                              alt="Thumbnail"
+                              style={{ width: "60px", height: "40px", objectFit: "cover", borderRadius: "4px" }}
+                            />
+                            <div>
+                              <div style={{ fontSize: "13px", fontWeight: "700", maxWidth: "300px", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                                {item.title}
+                              </div>
+                              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                                Dikirim oleh: <strong>{item.senderName}</strong>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: "flex", gap: "6px" }}>
+                            {item.status === "PENDING" ? (
+                              <button type="button" onClick={() => handleMediashareAction(item.id, "play")} className="btn btn-primary" style={{ padding: "6px 12px", fontSize: "11px" }}>
+                                Putar Live
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: "11px", color: "var(--success)", fontWeight: "700", marginRight: "10px" }}>Sedang Diputar...</span>
+                            )}
+                            <button type="button" onClick={() => handleMediashareAction(item.id, "skip")} className="btn btn-secondary" style={{ padding: "6px 12px", fontSize: "11px" }}>
+                              Skip Video
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ color: "var(--text-muted)", fontSize: "13px" }}>Antrean Media Share kosong. Tontonan suporter akan muncul di sini ketika ada donasi Media Share masuk.</div>
+                  )}
+                </div>
+              )}
+
             </div>
           )}
 

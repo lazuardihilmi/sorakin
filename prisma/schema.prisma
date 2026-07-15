@@ -38,6 +38,11 @@ model Creator {
   settlements    Settlement[]
   withdrawals    Withdrawal[]
   overlay        OverlaySettings?
+  milestoneGoal  MilestoneGoal?
+  subathonTimer  SubathonTimer?
+  votingPoll     VotingPoll?
+  mediashareQueue MediashareQueue[]
+  soundboardSounds SoundboardSound[]
 }
 
 model CreatorSettings {
@@ -102,6 +107,10 @@ model Donation {
   createdAt     DateTime    @default(now())
   settledAt     DateTime?
   settlements   Settlement[]
+  votingOptionId    Int?
+  mediashareVidId   String? // YouTube ID
+  mediashareTitle   String?
+  soundboardSoundId Int?
 }
 
 model Settlement {
@@ -127,4 +136,71 @@ model Withdrawal {
   accountName   String
   status        String   @default("PENDING") // "PENDING", "SUCCESS", "FAILED"
   createdAt     DateTime @default(now())
+}
+
+model MilestoneGoal {
+  id            Int      @id @default(autoincrement())
+  creatorId     Int      @unique
+  creator       Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  title         String
+  targetAmount  Float
+  currentAmount Float    @default(0.0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SubathonTimer {
+  id                 Int      @id @default(autoincrement())
+  creatorId          Int      @unique
+  creator            Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  remainingSeconds   Int      @default(3600)
+  isActive           Boolean  @default(false)
+  secondsPerRupiah   Float    @default(0.01)
+  maxSeconds         Int      @default(86400)
+  lastUpdatedAt      DateTime @default(now())
+  createdAt          DateTime @default(now())
+}
+
+model VotingPoll {
+  id        Int            @id @default(autoincrement())
+  creatorId Int            @unique
+  creator   Creator        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  title     String
+  isActive  Boolean        @default(true)
+  options   VotingOption[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model VotingOption {
+  id         Int        @id @default(autoincrement())
+  pollId     Int
+  poll       VotingPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  name       String
+  votesCount Float      @default(0.0)
+  createdAt  DateTime   @default(now())
+}
+
+model MediashareQueue {
+  id         Int      @id @default(autoincrement())
+  creatorId  Int
+  creator    Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  youtubeId  String
+  title      String
+  senderName String
+  duration   Int
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+}
+
+model SoundboardSound {
+  id        Int      @id @default(autoincrement())
+  creatorId Int
+  creator   Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  name      String
+  soundUrl  String
+  price     Float
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 }

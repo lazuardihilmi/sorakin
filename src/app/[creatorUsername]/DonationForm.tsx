@@ -14,6 +14,30 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Interactive Widgets states
+  const [widgetsData, setWidgetsData] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<"standard" | "voting" | "mediashare" | "soundboard">("standard");
+  const [votingOptionId, setVotingOptionId] = useState<string>("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [youtubeVidId, setYoutubeVidId] = useState("");
+  const [youtubeTitle, setYoutubeTitle] = useState("");
+  const [soundboardSoundId, setSoundboardSoundId] = useState<string>("");
+
+  useEffect(() => {
+    const fetchWidgets = async () => {
+      try {
+        const res = await fetch(`/api/creator/widgets?username=${creator.username}`);
+        const data = await res.json();
+        if (res.ok) {
+          setWidgetsData(data);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchWidgets();
+  }, [creator.username]);
+
   // Card details
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpMonth, setCardExpMonth] = useState("");
@@ -136,10 +160,14 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
           senderName: isAnonymous ? "Anonim" : senderName,
           senderEmail,
           message,
-          amount,
+           amount,
           paymentType,
           isAnonymous,
-          token_id
+          token_id,
+          votingOptionId: activeTab === "voting" ? votingOptionId : null,
+          mediashareVidId: activeTab === "mediashare" ? youtubeVidId : null,
+          mediashareTitle: activeTab === "mediashare" ? (youtubeTitle || "YouTube Video") : null,
+          soundboardSoundId: activeTab === "soundboard" ? soundboardSoundId : null,
         }),
       });
 
@@ -367,6 +395,186 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
             <label htmlFor="anonToggle" style={{ fontSize: "13px", color: "var(--text-muted)", cursor: "pointer", fontWeight: "500" }}>
               Kirim sebagai Anonim (Sembunyikan nama asli & email dari Kreator)
             </label>
+          </div>
+        )}
+
+        {/* Interactive Tipping Mode Tabs */}
+        <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", gap: "12px", overflowX: "auto" }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab("standard")}
+            className="btn"
+            style={{
+              padding: "8px 16px",
+              fontSize: "13px",
+              fontWeight: "600",
+              borderRadius: "100px",
+              backgroundColor: activeTab === "standard" ? "var(--primary)" : "transparent",
+              color: activeTab === "standard" ? "white" : "var(--text-main)",
+              border: activeTab === "standard" ? "1px solid var(--primary)" : "1px solid var(--border-color)"
+            }}
+          >
+            ☕ Dukungan Standar
+          </button>
+          
+          {widgetsData?.votingPoll?.isActive && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("voting")}
+              className="btn"
+              style={{
+                padding: "8px 16px",
+                fontSize: "13px",
+                fontWeight: "600",
+                borderRadius: "100px",
+                backgroundColor: activeTab === "voting" ? "var(--primary)" : "transparent",
+                color: activeTab === "voting" ? "white" : "var(--text-main)",
+                border: activeTab === "voting" ? "1px solid var(--primary)" : "1px solid var(--border-color)"
+              }}
+            >
+              🗳️ Polling Suara
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("mediashare")}
+            className="btn"
+            style={{
+              padding: "8px 16px",
+              fontSize: "13px",
+              fontWeight: "600",
+              borderRadius: "100px",
+              backgroundColor: activeTab === "mediashare" ? "var(--primary)" : "transparent",
+              color: activeTab === "mediashare" ? "white" : "var(--text-main)",
+              border: activeTab === "mediashare" ? "1px solid var(--primary)" : "1px solid var(--border-color)"
+            }}
+          >
+            🎥 Media Share
+          </button>
+
+          {widgetsData?.soundboardSounds?.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("soundboard")}
+              className="btn"
+              style={{
+                padding: "8px 16px",
+                fontSize: "13px",
+                fontWeight: "600",
+                borderRadius: "100px",
+                backgroundColor: activeTab === "soundboard" ? "var(--primary)" : "transparent",
+                color: activeTab === "soundboard" ? "white" : "var(--text-main)",
+                border: activeTab === "soundboard" ? "1px solid var(--primary)" : "1px solid var(--border-color)"
+              }}
+            >
+              🔊 Soundboard
+            </button>
+          )}
+        </div>
+
+        {/* Tab Panels */}
+        {activeTab === "voting" && widgetsData?.votingPoll?.isActive && (
+          <div className="form-group" style={{ marginBottom: 0, padding: "16px", background: "#fdfbfa", border: "1px solid var(--border-color)", borderRadius: "var(--border-radius-md)" }}>
+            <label className="form-label" style={{ fontWeight: "700" }}>Pilihan Polling: "{widgetsData.votingPoll.title}"</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
+              {widgetsData.votingPoll.options.map((opt: any) => (
+                <label key={opt.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px", border: "1px solid var(--border-color)", borderRadius: "8px", background: "white", cursor: "pointer" }}>
+                  <input
+                    type="radio"
+                    name="votingOption"
+                    value={opt.id}
+                    checked={votingOptionId === opt.id.toString()}
+                    onChange={() => setVotingOptionId(opt.id.toString())}
+                    style={{ accentColor: "var(--primary)" }}
+                    required={activeTab === "voting"}
+                  />
+                  <span style={{ fontSize: "14px", fontWeight: "600" }}>{opt.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "mediashare" && (
+          <div className="form-group" style={{ marginBottom: 0, padding: "16px", background: "#fdfbfa", border: "1px solid var(--border-color)", borderRadius: "var(--border-radius-md)", display: "flex", flexDirection: "column", gap: "12px" }}>
+            <label className="form-label" style={{ fontWeight: "700" }}>Kirim YouTube Video Share</label>
+            <input
+              type="text"
+              placeholder="Paste link YouTube (contoh: https://www.youtube.com/watch?v=dQw4w9WgXcQ)"
+              value={youtubeUrl}
+              onChange={(e) => {
+                const val = e.target.value;
+                setYoutubeUrl(val);
+                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                const match = val.match(regExp);
+                const vidId = (match && match[2].length === 11) ? match[2] : null;
+                if (vidId) {
+                  setYoutubeVidId(vidId);
+                  setYoutubeTitle("YouTube Video");
+                } else {
+                  setYoutubeVidId("");
+                }
+              }}
+              className="input-field"
+              required={activeTab === "mediashare"}
+            />
+            {youtubeVidId && (
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", border: "1px solid var(--border-color)", padding: "10px", borderRadius: "8px", background: "white" }}>
+                <img
+                  src={`https://img.youtube.com/vi/${youtubeVidId}/mqdefault.jpg`}
+                  alt="YouTube Preview"
+                  style={{ width: "90px", height: "60px", objectFit: "cover", borderRadius: "6px" }}
+                />
+                <div>
+                  <div style={{ fontSize: "13px", fontWeight: "700", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", width: "180px" }}>Preview Terdeteksi</div>
+                  <input
+                    type="text"
+                    placeholder="Judul Video"
+                    value={youtubeTitle}
+                    onChange={(e) => setYoutubeTitle(e.target.value)}
+                    className="input-field"
+                    style={{ fontSize: "12px", padding: "4px 8px", marginTop: "4px", height: "auto" }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "soundboard" && widgetsData?.soundboardSounds?.length > 0 && (
+          <div className="form-group" style={{ marginBottom: 0, padding: "16px", background: "#fdfbfa", border: "1px solid var(--border-color)", borderRadius: "var(--border-radius-md)" }}>
+            <label className="form-label" style={{ fontWeight: "700" }}>Pilih Efek Suara Soundboard</label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "10px" }}>
+              {widgetsData.soundboardSounds.map((sound: any) => (
+                <button
+                  key={sound.id}
+                  type="button"
+                  onClick={() => {
+                    setSoundboardSoundId(sound.id.toString());
+                    if ((parseFloat(amount) || 0) < sound.price) {
+                      setAmount(sound.price.toString());
+                    }
+                  }}
+                  className="btn"
+                  style={{
+                    padding: "10px",
+                    border: soundboardSoundId === sound.id.toString() ? "2px solid var(--primary)" : "1px solid var(--border-color)",
+                    borderRadius: "8px",
+                    background: soundboardSoundId === sound.id.toString() ? "var(--primary-light)" : "white",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    textAlign: "left"
+                  }}
+                >
+                  <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-main)" }}>{sound.name}</span>
+                  <span style={{ fontSize: "11px", color: "var(--primary-hover)", fontWeight: "600", marginTop: "2px" }}>
+                    Min: Rp {sound.price.toLocaleString("id-ID")}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
