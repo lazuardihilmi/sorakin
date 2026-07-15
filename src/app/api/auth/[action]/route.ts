@@ -23,6 +23,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ action: string }> }
 ) {
+  try {
   const { action } = await params;
   const body = await request.json().catch(() => ({}));
 
@@ -267,4 +268,11 @@ export async function POST(
   }
 
   return NextResponse.json({ error: "Action not supported" }, { status: 400 });
+  } catch (err: unknown) {
+    console.error("[AUTH API] Unhandled error:", err);
+    return NextResponse.json(
+      { error: "Terjadi kesalahan pada server. Silakan coba lagi." },
+      { status: 500 }
+    );
+  }
 }

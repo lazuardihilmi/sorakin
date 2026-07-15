@@ -178,7 +178,13 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
         }),
       });
 
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Server tidak merespons dengan benar. Silakan coba lagi.");
+      }
       if (!response.ok) throw new Error(data.error);
 
       setOrderId(data.orderId);

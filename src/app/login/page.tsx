@@ -30,7 +30,13 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, password, rememberMe }),
       });
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Server tidak merespons dengan benar. Silakan coba lagi.");
+      }
 
       if (!response.ok) {
         throw new Error(data.error || "Login gagal. Periksa kembali data Anda.");
@@ -59,7 +65,13 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: randomEmail, name }),
       });
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Server tidak merespons dengan benar. Silakan coba lagi.");
+      }
 
       if (!response.ok) {
         throw new Error(data.error || "Gagal masuk menggunakan Google Account.");
