@@ -29,6 +29,7 @@ export default function OBSOverlayPage() {
   const [alertQueue, setAlertQueue] = useState<AlertItem[]>([]);
   const [currentAlert, setCurrentAlert] = useState<AlertItem | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [interacted, setInteracted] = useState(false);
   
   // Audio context for synthesizer chimes (fallback if mp3 fails/not loaded)
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -171,6 +172,46 @@ export default function OBSOverlayPage() {
       setIsPlaying(false);
     }, durationMs);
   };
+
+  if (!interacted) {
+    return (
+      <div 
+        onClick={() => {
+          setInteracted(true);
+          if (!audioCtxRef.current) {
+            audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+          }
+          if (audioCtxRef.current.state === "suspended") {
+            audioCtxRef.current.resume();
+          }
+          const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAAA");
+          audio.play().catch(() => {});
+        }}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(20, 20, 20, 0.95)",
+          color: "white",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          zIndex: 9999,
+          fontFamily: "sans-serif",
+          gap: "12px",
+          padding: "20px",
+          textAlign: "center"
+        }}
+      >
+        <div style={{ fontSize: "40px" }}>🔊</div>
+        <div style={{ fontSize: "16px", fontWeight: "800", letterSpacing: "-0.5px" }}>Aktifkan Audio Overlay Alert</div>
+        <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", maxWidth: "280px", lineHeight: "1.5" }}>
+          Klik di mana saja untuk mengaktifkan suara alert &amp; pembacaan TTS. (Bagi OBS: klik kanan source lalu pilih &apos;Interact&apos;)
+        </div>
+      </div>
+    );
+  }
 
   if (!connected) {
     return (

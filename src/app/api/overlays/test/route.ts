@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       triggerDonationAlert(key, {
         soundboardPlay: {
           name: "Coin Clink (Test)",
-          soundUrl: "https://www.soundjay.com/buttons/sounds/button-3.mp3"
+          soundUrl: "https://upload.wikimedia.org/wikipedia/commons/5/5b/Clapeyron_ding.mp3"
         }
       } as any);
     }
