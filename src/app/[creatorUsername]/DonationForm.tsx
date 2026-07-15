@@ -16,21 +16,26 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
 
   // Interactive Widgets states
   const [widgetsData, setWidgetsData] = useState<any>(null);
+  const [msSettings, setMsSettings] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<"standard" | "voting" | "mediashare" | "soundboard">("standard");
   const [votingOptionId, setVotingOptionId] = useState<string>("");
-  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [mediaType, setMediaType] = useState<"youtube" | "tiktok" | "ig_reels" | "voice_note">("youtube");
   const [youtubeVidId, setYoutubeVidId] = useState("");
-  const [youtubeTitle, setYoutubeTitle] = useState("");
+  const [mediaTitle, setMediaTitle] = useState("");
   const [soundboardSoundId, setSoundboardSoundId] = useState<string>("");
 
   useEffect(() => {
     const fetchWidgets = async () => {
       try {
-        const res = await fetch(`/api/creator/widgets?username=${creator.username}`);
-        const data = await res.json();
-        if (res.ok) {
-          setWidgetsData(data);
-        }
+        const [wRes, mRes] = await Promise.all([
+          fetch(`/api/creator/widgets?username=${creator.username}`),
+          fetch(`/api/creator/widgets/mediashare?username=${creator.username}`)
+        ]);
+        const wData = await wRes.json();
+        if (wRes.ok) setWidgetsData(wData);
+        const mData = await mRes.json();
+        if (mRes.ok && mData.settings) setMsSettings(mData.settings);
       } catch (e) {
         console.error(e);
       }
@@ -166,7 +171,9 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
           token_id,
           votingOptionId: activeTab === "voting" ? votingOptionId : null,
           mediashareVidId: activeTab === "mediashare" ? youtubeVidId : null,
-          mediashareTitle: activeTab === "mediashare" ? (youtubeTitle || "YouTube Video") : null,
+          mediashareTitle: activeTab === "mediashare" ? (mediaTitle || mediaType) : null,
+          mediashareType: activeTab === "mediashare" ? mediaType : null,
+          mediashareUrl: activeTab === "mediashare" ? mediaUrl : null,
           soundboardSoundId: activeTab === "soundboard" ? soundboardSoundId : null,
         }),
       });
@@ -496,51 +503,155 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
           </div>
         )}
 
-        {activeTab === "mediashare" && (
-          <div className="form-group" style={{ marginBottom: 0, padding: "16px", background: "#fdfbfa", border: "1px solid var(--border-color)", borderRadius: "var(--border-radius-md)", display: "flex", flexDirection: "column", gap: "12px" }}>
-            <label className="form-label" style={{ fontWeight: "700" }}>Kirim YouTube Video Share</label>
-            <input
-              type="text"
-              placeholder="Paste link YouTube (contoh: https://www.youtube.com/watch?v=dQw4w9WgXcQ)"
-              value={youtubeUrl}
-              onChange={(e) => {
-                const val = e.target.value;
-                setYoutubeUrl(val);
-                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-                const match = val.match(regExp);
-                const vidId = (match && match[2].length === 11) ? match[2] : null;
-                if (vidId) {
-                  setYoutubeVidId(vidId);
-                  setYoutubeTitle("YouTube Video");
-                } else {
-                  setYoutubeVidId("");
-                }
-              }}
-              className="input-field"
-              required={activeTab === "mediashare"}
-            />
-            {youtubeVidId && (
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", border: "1px solid var(--border-color)", padding: "10px", borderRadius: "8px", background: "white" }}>
-                <img
-                  src={`https://img.youtube.com/vi/${youtubeVidId}/mqdefault.jpg`}
-                  alt="YouTube Preview"
-                  style={{ width: "90px", height: "60px", objectFit: "cover", borderRadius: "6px" }}
-                />
-                <div>
-                  <div style={{ fontSize: "13px", fontWeight: "700", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", width: "180px" }}>Preview Terdeteksi</div>
-                  <input
-                    type="text"
-                    placeholder="Judul Video"
-                    value={youtubeTitle}
-                    onChange={(e) => setYoutubeTitle(e.target.value)}
-                    className="input-field"
-                    style={{ fontSize: "12px", padding: "4px 8px", marginTop: "4px", height: "auto" }}
-                  />
-                </div>
+        {activeTab === "mediashare" && (() => {
+          // Detect URL type
+          const detectType = (url: string): "youtube" | "tiktok" | "ig_reels" | "voice_note" => {
+            if (/youtu\.?be|youtube\.com/i.test(url)) return "youtube";
+            if (/tiktok\.com/i.test(url)) return "tiktok";
+            if (/instagram\.com\/reels?/i.test(url)) return "ig_reels";
+            if (/\.(mp3|wav|ogg|m4a)/i.test(url)) return "voice_note";
+            return "youtube";
+          };
+
+          const parseYoutubeId = (url: string) => {
+            const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+          };
+
+          // Effective settings (defaults if creator hasn't set)
+          const settings = msSettings || {
+            isActive: true, enableYoutube: true, enableTiktok: false,
+            enableIgReels: false, enableVoiceNote: false,
+            maxVideoDuration: 300, pricePerSecond: 100, minVideoPrice: 10000,
+            maxAudioDuration: 60, audioPricePerSecond: 200, minAudioPrice: 50000
+          };
+
+          const acceptedTypes = [
+            settings.enableYoutube && { type: "youtube", label: "YT/Shorts", color: "#FF0000" },
+            settings.enableTiktok && { type: "tiktok", label: "TikTok", color: "#010101" },
+            settings.enableIgReels && { type: "ig_reels", label: "IG Reels", color: "#E1306C" },
+            settings.enableVoiceNote && { type: "voice_note", label: "🎙️ Voice Note", color: "#6c63ff" },
+          ].filter(Boolean) as { type: string; label: string; color: string }[];
+
+          const isVoice = mediaType === "voice_note";
+          const minPrice = isVoice ? settings.minAudioPrice : settings.minVideoPrice;
+          const pricePerSec = isVoice ? settings.audioPricePerSecond : settings.pricePerSecond;
+
+          // Calculate suggested min amount based on max duration
+          const maxDur = isVoice ? settings.maxAudioDuration : settings.maxVideoDuration;
+          const calcMin = Math.max(minPrice, maxDur * pricePerSec);
+
+          if (!settings.isActive) {
+            return (
+              <div className="form-group" style={{ marginBottom: 0, padding: "16px", background: "#fff5f5", border: "1px solid #fecaca", borderRadius: "var(--border-radius-md)", textAlign: "center", color: "var(--error)", fontSize: "13px", fontWeight: "600" }}>
+                Fitur Media Share sedang dinonaktifkan oleh kreator.
               </div>
-            )}
-          </div>
-        )}
+            );
+          }
+
+          return (
+            <div className="form-group" style={{ marginBottom: 0, padding: "16px", background: "#fdfbfa", border: "1px solid var(--border-color)", borderRadius: "var(--border-radius-md)", display: "flex", flexDirection: "column", gap: "14px" }}>
+              <label className="form-label" style={{ fontWeight: "700" }}>🎥 Kirim Media Share</label>
+
+              {/* Accepted type badges */}
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                {acceptedTypes.map((t) => (
+                  <span key={t.type} style={{ background: t.color, color: "white", fontSize: "10px", fontWeight: "800", padding: "3px 10px", borderRadius: "100px" }}>{t.label}</span>
+                ))}
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", alignSelf: "center", marginLeft: "4px" }}>Tipe yang diterima kreator</span>
+              </div>
+
+              {/* Pricing info */}
+              <div style={{ background: "white", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "10px 14px", fontSize: "12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                {(settings.enableYoutube || settings.enableTiktok || settings.enableIgReels) && (
+                  <>
+                    <span style={{ color: "var(--text-muted)" }}>📹 Maks. durasi video</span>
+                    <span style={{ fontWeight: "700" }}>{settings.maxVideoDuration} detik</span>
+                    <span style={{ color: "var(--text-muted)" }}>Harga per detik</span>
+                    <span style={{ fontWeight: "700" }}>Rp {settings.pricePerSecond.toLocaleString("id-ID")}</span>
+                    <span style={{ color: "var(--text-muted)" }}>Min. tip video</span>
+                    <span style={{ fontWeight: "700", color: "var(--primary-hover)" }}>Rp {settings.minVideoPrice.toLocaleString("id-ID")}</span>
+                  </>
+                )}
+                {settings.enableVoiceNote && (
+                  <>
+                    <span style={{ color: "var(--text-muted)" }}>🎙️ Maks. durasi suara</span>
+                    <span style={{ fontWeight: "700" }}>{settings.maxAudioDuration} detik</span>
+                    <span style={{ color: "var(--text-muted)" }}>Min. tip suara</span>
+                    <span style={{ fontWeight: "700", color: "var(--primary-hover)" }}>Rp {settings.minAudioPrice.toLocaleString("id-ID")}</span>
+                  </>
+                )}
+              </div>
+
+              {/* URL Input */}
+              <input
+                type="text"
+                placeholder={
+                  acceptedTypes.length === 1 && acceptedTypes[0].type === "youtube"
+                    ? "Paste link YouTube (contoh: https://youtu.be/dQw4w9WgXcQ)"
+                    : "Paste link YouTube, TikTok, atau IG Reels di sini..."
+                }
+                value={mediaUrl}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setMediaUrl(val);
+                  const detectedType = detectType(val);
+                  setMediaType(detectedType);
+                  if (detectedType === "youtube") {
+                    const vidId = parseYoutubeId(val);
+                    setYoutubeVidId(vidId || "");
+                    setMediaTitle(vidId ? "YouTube Video" : "");
+                  } else {
+                    setYoutubeVidId("");
+                    setMediaTitle("");
+                  }
+                  // Auto-suggest minimum amount
+                  const isVid = detectedType !== "voice_note";
+                  const minP = isVid ? settings.minVideoPrice : settings.minAudioPrice;
+                  if ((parseFloat(amount) || 0) < minP) setAmount(minP.toString());
+                }}
+                className="input-field"
+                required={activeTab === "mediashare"}
+              />
+
+              {/* Type detection badge */}
+              {mediaUrl && (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                  <span style={{
+                    background: mediaType === "youtube" ? "#FF0000" : mediaType === "tiktok" ? "#010101" : mediaType === "ig_reels" ? "#E1306C" : "#6c63ff",
+                    color: "white", fontSize: "10px", fontWeight: "800", padding: "2px 8px", borderRadius: "100px"
+                  }}>
+                    {mediaType === "youtube" ? "YT" : mediaType === "tiktok" ? "TikTok" : mediaType === "ig_reels" ? "IG Reels" : "🎙️ Voice"}
+                  </span>
+                  <span style={{ color: "var(--text-muted)" }}>Terdeteksi · Tip minimum untuk ini: <strong style={{ color: "var(--primary-hover)" }}>Rp {minPrice.toLocaleString("id-ID")}</strong></span>
+                </div>
+              )}
+
+              {/* YouTube thumbnail preview */}
+              {youtubeVidId && (
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", border: "1px solid var(--border-color)", padding: "10px", borderRadius: "8px", background: "white" }}>
+                  <img
+                    src={`https://img.youtube.com/vi/${youtubeVidId}/mqdefault.jpg`}
+                    alt="YouTube Preview"
+                    style={{ width: "90px", height: "60px", objectFit: "cover", borderRadius: "6px" }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "4px" }}>Preview Terdeteksi</div>
+                    <input
+                      type="text"
+                      placeholder="Judul video (opsional)"
+                      value={mediaTitle}
+                      onChange={(e) => setMediaTitle(e.target.value)}
+                      className="input-field"
+                      style={{ fontSize: "12px", padding: "4px 8px", height: "auto" }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {activeTab === "soundboard" && widgetsData?.soundboardSounds?.length > 0 && (
           <div className="form-group" style={{ marginBottom: 0, padding: "16px", background: "#fdfbfa", border: "1px solid var(--border-color)", borderRadius: "var(--border-radius-md)" }}>

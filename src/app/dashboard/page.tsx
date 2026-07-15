@@ -108,6 +108,19 @@ export default function DashboardPage() {
   const [sbSoundUrl, setSbSoundUrl] = useState("");
   const [sbSoundPrice, setSbSoundPrice] = useState("10000");
 
+  // MediaShare settings states
+  const [msShareActive, setMsShareActive] = useState(true);
+  const [msEnableYoutube, setMsEnableYoutube] = useState(true);
+  const [msEnableTiktok, setMsEnableTiktok] = useState(false);
+  const [msEnableIgReels, setMsEnableIgReels] = useState(false);
+  const [msEnableVoiceNote, setMsEnableVoiceNote] = useState(false);
+  const [msMaxVideoDuration, setMsMaxVideoDuration] = useState("300");
+  const [msPricePerSecond, setMsPricePerSecond] = useState("100");
+  const [msMinVideoPrice, setMsMinVideoPrice] = useState("10000");
+  const [msMaxAudioDuration, setMsMaxAudioDuration] = useState("60");
+  const [msAudioPricePerSecond, setMsAudioPricePerSecond] = useState("200");
+  const [msMinAudioPrice, setMsMinAudioPrice] = useState("50000");
+
   const fetchWidgetsData = async () => {
     if (activeMode !== "creator") return;
     try {
@@ -136,9 +149,58 @@ export default function DashboardPage() {
       const mData = await mRes.json();
       if (mRes.ok) {
         setMediashareQueue(mData.queue || []);
+        const ms = mData.settings;
+        if (ms) {
+          setMsShareActive(ms.isActive);
+          setMsEnableYoutube(ms.enableYoutube);
+          setMsEnableTiktok(ms.enableTiktok);
+          setMsEnableIgReels(ms.enableIgReels);
+          setMsEnableVoiceNote(ms.enableVoiceNote);
+          setMsMaxVideoDuration(ms.maxVideoDuration.toString());
+          setMsPricePerSecond(ms.pricePerSecond.toString());
+          setMsMinVideoPrice(ms.minVideoPrice.toString());
+          setMsMaxAudioDuration(ms.maxAudioDuration.toString());
+          setMsAudioPricePerSecond(ms.audioPricePerSecond.toString());
+          setMsMinAudioPrice(ms.minAudioPrice.toString());
+        }
       }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleSaveMediashareSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const res = await fetch("/api/creator/widgets/mediashare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "settings",
+          isActive: msShareActive,
+          enableYoutube: msEnableYoutube,
+          enableTiktok: msEnableTiktok,
+          enableIgReels: msEnableIgReels,
+          enableVoiceNote: msEnableVoiceNote,
+          maxVideoDuration: msMaxVideoDuration,
+          pricePerSecond: msPricePerSecond,
+          minVideoPrice: msMinVideoPrice,
+          maxAudioDuration: msMaxAudioDuration,
+          audioPricePerSecond: msAudioPricePerSecond,
+          minAudioPrice: msMinAudioPrice,
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSuccessMsg("Pengaturan Media Share berhasil disimpan!");
+      fetchWidgetsData();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -2312,52 +2374,224 @@ export default function DashboardPage() {
               )}
 
               {widgetSubTab === "mediashare" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                    <h3 style={{ fontSize: "16px", fontWeight: "700" }}>Playlist Antrean Media Share</h3>
-                    <button type="button" onClick={handleClearMediashareQueue} className="btn btn-secondary" style={{ borderColor: "var(--error)", color: "var(--error)", padding: "6px 12px", fontSize: "12px" }}>
-                      Kosongkan Antrean
-                    </button>
-                  </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
 
-                  {mediashareQueue.length > 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      {mediashareQueue.map((item) => (
-                        <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fcfcfa", padding: "12px", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
-                          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                            <img
-                              src={`https://img.youtube.com/vi/${item.youtubeId}/mqdefault.jpg`}
-                              alt="Thumbnail"
-                              style={{ width: "60px", height: "40px", objectFit: "cover", borderRadius: "4px" }}
+                  {/* ── Settings Form ── */}
+                  <form onSubmit={handleSaveMediashareSettings} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <h3 style={{ fontSize: "16px", fontWeight: "700" }}>Pengaturan Mediashare</h3>
+                      <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+                        <input
+                          type="checkbox"
+                          checked={msShareActive}
+                          onChange={(e) => setMsShareActive(e.target.checked)}
+                          style={{ width: "16px", height: "16px", accentColor: "var(--primary)" }}
+                        />
+                        Aktifkan media share
+                      </label>
+                    </div>
+
+                    {/* Media Type Checkboxes */}
+                    <div>
+                      <label className="form-label">Tipe Mediashare yang Diterima</label>
+                      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "8px" }}>
+                        {[
+                          { key: "youtube", label: "YT/Shorts", state: msEnableYoutube, set: setMsEnableYoutube },
+                          { key: "tiktok", label: "TikTok", state: msEnableTiktok, set: setMsEnableTiktok },
+                          { key: "ig_reels", label: "IG Reels", state: msEnableIgReels, set: setMsEnableIgReels },
+                          { key: "voice_note", label: "Voice Note", state: msEnableVoiceNote, set: setMsEnableVoiceNote },
+                        ].map((t) => (
+                          <label
+                            key={t.key}
+                            style={{
+                              display: "flex", alignItems: "center", gap: "6px",
+                              padding: "6px 14px", borderRadius: "100px", cursor: "pointer",
+                              fontSize: "13px", fontWeight: "600",
+                              border: t.state ? "2px solid var(--primary)" : "1px solid var(--border-color)",
+                              background: t.state ? "var(--primary-light)" : "white",
+                              color: t.state ? "var(--primary-hover)" : "var(--text-muted)",
+                              transition: "all 0.15s"
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={t.state}
+                              onChange={(e) => t.set(e.target.checked)}
+                              style={{ accentColor: "var(--primary)", width: "14px", height: "14px" }}
                             />
-                            <div>
-                              <div style={{ fontSize: "13px", fontWeight: "700", maxWidth: "300px", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
-                                {item.title}
-                              </div>
-                              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                                Dikirim oleh: <strong>{item.senderName}</strong>
-                              </div>
-                            </div>
-                          </div>
+                            {t.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
 
-                          <div style={{ display: "flex", gap: "6px" }}>
-                            {item.status === "PENDING" ? (
-                              <button type="button" onClick={() => handleMediashareAction(item.id, "play")} className="btn btn-primary" style={{ padding: "6px 12px", fontSize: "11px" }}>
-                                Putar Live
-                              </button>
-                            ) : (
-                              <span style={{ fontSize: "11px", color: "var(--success)", fontWeight: "700", marginRight: "10px" }}>Sedang Diputar...</span>
-                            )}
-                            <button type="button" onClick={() => handleMediashareAction(item.id, "skip")} className="btn btn-secondary" style={{ padding: "6px 12px", fontSize: "11px" }}>
-                              Skip Video
-                            </button>
+                    {/* Video Rules */}
+                    {(msEnableYoutube || msEnableTiktok || msEnableIgReels) && (
+                      <div style={{ background: "#f9f9f7", border: "1px solid var(--border-color)", borderRadius: "10px", padding: "16px" }}>
+                        <div style={{ fontSize: "13px", fontWeight: "800", marginBottom: "14px", color: "var(--text-main)" }}>
+                          📹 Aturan Minimum Video
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="form-label" style={{ fontSize: "11px" }}>Maksimum video (detik)</label>
+                            <input
+                              type="number"
+                              value={msMaxVideoDuration}
+                              onChange={(e) => setMsMaxVideoDuration(e.target.value)}
+                              className="input-field"
+                              style={{ height: "36px", fontSize: "13px" }}
+                              min={10}
+                            />
+                          </div>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="form-label" style={{ fontSize: "11px" }}>Harga per detik (Rp)</label>
+                            <input
+                              type="number"
+                              value={msPricePerSecond}
+                              onChange={(e) => setMsPricePerSecond(e.target.value)}
+                              className="input-field"
+                              style={{ height: "36px", fontSize: "13px" }}
+                              min={1}
+                            />
+                          </div>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="form-label" style={{ fontSize: "11px" }}>Tip minimum video (Rp)</label>
+                            <input
+                              type="number"
+                              value={msMinVideoPrice}
+                              onChange={(e) => setMsMinVideoPrice(e.target.value)}
+                              className="input-field"
+                              style={{ height: "36px", fontSize: "13px" }}
+                              min={1000}
+                            />
                           </div>
                         </div>
-                      ))}
+                        <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "8px" }}>
+                          Contoh: video 60 detik → min. tip = max(Rp {(parseInt(msMinVideoPrice)||10000).toLocaleString("id-ID")}, 60 × Rp {parseInt(msPricePerSecond)||100}) = <strong>Rp {Math.max(parseInt(msMinVideoPrice)||10000, 60 * (parseInt(msPricePerSecond)||100)).toLocaleString("id-ID")}</strong>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Voice Note Rules */}
+                    {msEnableVoiceNote && (
+                      <div style={{ background: "#f9f9f7", border: "1px solid var(--border-color)", borderRadius: "10px", padding: "16px" }}>
+                        <div style={{ fontSize: "13px", fontWeight: "800", marginBottom: "14px", color: "var(--text-main)" }}>
+                          🎙️ Aturan Minimum Suara (Voice Note)
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="form-label" style={{ fontSize: "11px" }}>Maksimum suara (detik)</label>
+                            <input
+                              type="number"
+                              value={msMaxAudioDuration}
+                              onChange={(e) => setMsMaxAudioDuration(e.target.value)}
+                              className="input-field"
+                              style={{ height: "36px", fontSize: "13px" }}
+                              min={5}
+                            />
+                          </div>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="form-label" style={{ fontSize: "11px" }}>Harga per detik (Rp)</label>
+                            <input
+                              type="number"
+                              value={msAudioPricePerSecond}
+                              onChange={(e) => setMsAudioPricePerSecond(e.target.value)}
+                              className="input-field"
+                              style={{ height: "36px", fontSize: "13px" }}
+                              min={1}
+                            />
+                          </div>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="form-label" style={{ fontSize: "11px" }}>Tip minimum suara (Rp)</label>
+                            <input
+                              type="number"
+                              value={msMinAudioPrice}
+                              onChange={(e) => setMsMinAudioPrice(e.target.value)}
+                              className="input-field"
+                              style={{ height: "36px", fontSize: "13px" }}
+                              min={1000}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <button type="submit" disabled={saving} className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
+                      {saving ? "Menyimpan..." : "Simpan Pengaturan"}
+                    </button>
+                  </form>
+
+                  {/* ── Queue Panel ── */}
+                  <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "20px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                      <h3 style={{ fontSize: "15px", fontWeight: "700" }}>Playlist Antrean Media Share</h3>
+                      <button type="button" onClick={handleClearMediashareQueue} className="btn btn-secondary" style={{ borderColor: "var(--error)", color: "var(--error)", padding: "6px 12px", fontSize: "12px" }}>
+                        Kosongkan Antrean
+                      </button>
                     </div>
-                  ) : (
-                    <div style={{ color: "var(--text-muted)", fontSize: "13px" }}>Antrean Media Share kosong. Tontonan suporter akan muncul di sini ketika ada donasi Media Share masuk.</div>
-                  )}
+
+                    {mediashareQueue.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {mediashareQueue.map((item) => {
+                          const isYoutube = item.mediaType === "youtube" || !item.mediaType;
+                          const typeBadgeColor: Record<string, string> = {
+                            youtube: "#FF0000", tiktok: "#010101", ig_reels: "#E1306C", voice_note: "#6c63ff"
+                          };
+                          const typeLabel: Record<string, string> = {
+                            youtube: "YT", tiktok: "TikTok", ig_reels: "IG Reels", voice_note: "🎙️ Voice"
+                          };
+                          const badgeColor = typeBadgeColor[item.mediaType] || "#FF0000";
+                          const badgeLabel = typeLabel[item.mediaType] || "YT";
+
+                          return (
+                            <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fcfcfa", padding: "12px", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
+                              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                                {isYoutube ? (
+                                  <img
+                                    src={`https://img.youtube.com/vi/${item.youtubeId}/mqdefault.jpg`}
+                                    alt="Thumbnail"
+                                    style={{ width: "60px", height: "40px", objectFit: "cover", borderRadius: "4px" }}
+                                  />
+                                ) : (
+                                  <div style={{ width: "60px", height: "40px", background: badgeColor, borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <span style={{ color: "white", fontSize: "10px", fontWeight: "800" }}>{badgeLabel}</span>
+                                  </div>
+                                )}
+                                <div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                    <span style={{ background: badgeColor, color: "white", fontSize: "9px", fontWeight: "800", padding: "2px 6px", borderRadius: "100px" }}>{badgeLabel}</span>
+                                    <span style={{ fontSize: "13px", fontWeight: "700", maxWidth: "280px", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", display: "block" }}>
+                                      {item.title}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "3px" }}>
+                                    Dikirim oleh: <strong>{item.senderName}</strong> · {item.duration}s
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                                {item.status === "PENDING" ? (
+                                  <button type="button" onClick={() => handleMediashareAction(item.id, "play")} className="btn btn-primary" style={{ padding: "6px 12px", fontSize: "11px" }}>
+                                    ▶ Putar Live
+                                  </button>
+                                ) : (
+                                  <span style={{ fontSize: "11px", color: "var(--success)", fontWeight: "700", marginRight: "8px" }}>● Sedang Diputar</span>
+                                )}
+                                <button type="button" onClick={() => handleMediashareAction(item.id, "skip")} className="btn btn-secondary" style={{ padding: "6px 12px", fontSize: "11px" }}>
+                                  Skip
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ color: "var(--text-muted)", fontSize: "13px", textAlign: "center", padding: "32px 0", borderTop: "1px dashed var(--border-color)" }}>
+                        Antrean kosong. Video & suara dari suporter akan muncul di sini.
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

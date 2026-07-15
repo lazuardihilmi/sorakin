@@ -41,8 +41,9 @@ model Creator {
   milestoneGoal  MilestoneGoal?
   subathonTimer  SubathonTimer?
   votingPoll     VotingPoll?
-  mediashareQueue MediashareQueue[]
-  soundboardSounds SoundboardSound[]
+  mediashareQueue     MediashareQueue[]
+  soundboardSounds    SoundboardSound[]
+  mediashareSettings  MediashareSettings?
 }
 
 model CreatorSettings {
@@ -186,7 +187,9 @@ model MediashareQueue {
   id         Int      @id @default(autoincrement())
   creatorId  Int
   creator    Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  youtubeId  String
+  youtubeId  String   // Video ID (for YouTube) or empty string for other types
+  mediaUrl   String   @default("") // Original URL pasted by supporter
+  mediaType  String   @default("youtube") // "youtube" | "tiktok" | "ig_reels" | "voice_note"
   title      String
   senderName String
   duration   Int
@@ -203,4 +206,23 @@ model SoundboardSound {
   price     Float
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+model MediashareSettings {
+  id                  Int      @id @default(autoincrement())
+  creatorId           Int      @unique
+  creator             Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  isActive            Boolean  @default(true)
+  enableYoutube       Boolean  @default(true)
+  enableTiktok        Boolean  @default(false)
+  enableIgReels       Boolean  @default(false)
+  enableVoiceNote     Boolean  @default(false)
+  maxVideoDuration    Int      @default(300)
+  pricePerSecond      Int      @default(100)
+  minVideoPrice       Int      @default(10000)
+  maxAudioDuration    Int      @default(60)
+  audioPricePerSecond Int      @default(200)
+  minAudioPrice       Int      @default(50000)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
