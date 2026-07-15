@@ -835,8 +835,8 @@ export default function DashboardPage() {
     }
   };
 
-  // Developer Tools: Mock Alert Sound test
-  const handleTestOverlayAlert = async () => {
+  // Developer Tools: Mock Alert/Widget event test trigger
+  const handleTestOverlayAlert = async (widgetType = "alert") => {
     if (!session?.creator?.overlay) return;
     setErrorMsg("");
     setSuccessMsg("");
@@ -846,6 +846,7 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           key: session.creator.overlay.key,
+          widgetType,
           senderName: "Donatur Uji Coba",
           amount: 25000,
           message: "Halo! Ini adalah pesan donasi uji coba overlay!"
@@ -854,7 +855,8 @@ export default function DashboardPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setSuccessMsg("Alert uji coba terkirim ke overlay stream OBS!");
+      setSuccessMsg(`Uji coba widget "${widgetType}" berhasil dikirim ke overlay!`);
+      setTimeout(() => setSuccessMsg(""), 3000);
     } catch (e: any) {
       setErrorMsg(e.message);
     }
@@ -1116,7 +1118,7 @@ export default function DashboardPage() {
             {activeMode === "creator" && hasCreatorProfile && (
               <>
                 <button
-                  onClick={handleTestOverlayAlert}
+                  onClick={() => handleTestOverlayAlert("alert")}
                   className="btn btn-secondary"
                   style={{ width: "100%", fontSize: "11px", padding: "8px 0", gap: "4px", justifyContent: "center", marginBottom: "12px" }}
                 >
@@ -1905,15 +1907,15 @@ export default function DashboardPage() {
                   </p>
                   
                   {[
-                    { label: "1. Tipping Alert Overlay (Live Notifikasi & TTS)", path: "" },
-                    { label: "2. Media Share Overlay (Pemutar YouTube Video)", path: "/mediashare" },
-                    { label: "3. Soundboard Audio Overlay (Pemutar Efek Suara)", path: "/soundboard" },
-                    { label: "4. Subathon Timer Widget (Hitung Mundur Subathon)", path: "/subathon" },
-                    { label: "5. Voting / Polling Result Widget (Bar Chart Polling)", path: "/voting" },
-                    { label: "6. QR Code Screen Widget (Pindai QR Donasi)", path: "/qr" },
-                    { label: "7. Milestone Goal Widget (Progress Bar Target)", path: "/milestone" },
-                    { label: "8. Leaderboard Widget (Top Kontributor Teratas)", path: "/leaderboard" },
-                    { label: "9. Running Text / Ticker Widget (Recent Tips Berjalan)", path: "/running-text" }
+                    { label: "1. Tipping Alert Overlay (Live Notifikasi & TTS)", path: "", type: "alert" },
+                    { label: "2. Media Share Overlay (Pemutar YouTube Video)", path: "/mediashare", type: "mediashare" },
+                    { label: "3. Soundboard Audio Overlay (Pemutar Efek Suara)", path: "/soundboard", type: "soundboard" },
+                    { label: "4. Subathon Timer Widget (Hitung Mundur Subathon)", path: "/subathon", type: "subathon" },
+                    { label: "5. Voting / Polling Result Widget (Bar Chart Polling)", path: "/voting", type: "voting" },
+                    { label: "6. QR Code Screen Widget (Pindai QR Donasi)", path: "/qr", type: "qr" },
+                    { label: "7. Milestone Goal Widget (Progress Bar Target)", path: "/milestone", type: "milestone" },
+                    { label: "8. Leaderboard Widget (Top Kontributor Teratas)", path: "/leaderboard", type: "leaderboard" },
+                    { label: "9. Running Text / Ticker Widget (Recent Tips Berjalan)", path: "/running-text", type: "running-text" }
                   ].map((item, idx) => {
                     const fullUrl = `${window.location.origin}/overlay/${session.creator.overlay.key}${item.path}`;
                     return (
@@ -1936,8 +1938,18 @@ export default function DashboardPage() {
                             }}
                             className="btn btn-secondary"
                             style={{ padding: "0 10px", height: "32px" }}
+                            title="Salin Tautan"
                           >
                             <Copy size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleTestOverlayAlert(item.type)}
+                            className="btn btn-primary"
+                            style={{ padding: "0 12px", height: "32px", fontSize: "11px", display: "flex", alignItems: "center", gap: "4px" }}
+                            title="Kirim Uji Coba ke OBS"
+                          >
+                            <Play size={12} /> Uji Coba
                           </button>
                         </div>
                       </div>
@@ -1949,7 +1961,7 @@ export default function DashboardPage() {
               {widgetSubTab === "alert" && (
                 <div>
                   <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
-                    <button onClick={handleTestOverlayAlert} className="btn btn-primary" style={{ padding: "8px 16px", fontSize: "13px" }}>
+                    <button onClick={() => handleTestOverlayAlert("alert")} className="btn btn-primary" style={{ padding: "8px 16px", fontSize: "13px" }}>
                       <Play size={14} /> Tes Alert Suara (Uji Coba Overlay)
                     </button>
                     <Link href={`/overlay/${session.creator.overlay.key}`} target="_blank" className="btn btn-secondary" style={{ padding: "8px 16px", fontSize: "13px" }}>
