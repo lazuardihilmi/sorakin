@@ -1,5 +1,4 @@
 "use client";
-export const runtime = "edge";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -12,7 +11,6 @@ export default function RunningTextOverlay() {
   const [connected, setConnected] = useState(false);
   const [donations, setDonations] = useState<any[]>([]);
 
-  // Fetch recent donations
   const fetchRecentDonations = async () => {
     try {
       const res = await fetch(`/api/donations?type=creator&status=Selesai&limit=10`);
@@ -41,7 +39,6 @@ export default function RunningTextOverlay() {
       const data = JSON.parse(event.data);
       if (data.type === "connect") return;
 
-      // On new success donation, refresh list
       fetchRecentDonations();
     };
 
@@ -73,7 +70,6 @@ export default function RunningTextOverlay() {
     );
   }
 
-  // Format list items into a single scrolling string
   const formatTickerText = () => {
     if (donations.length === 0) {
       return "Selamat datang di live stream! Dukung kreator via sorakin.com";
@@ -93,7 +89,7 @@ export default function RunningTextOverlay() {
       width: "100vw",
       height: "100vh",
       display: "flex",
-      alignItems: "flex-end", // Render at bottom of screen typically
+      alignItems: "flex-end",
       fontFamily: "'Outfit', sans-serif",
       overflow: "hidden"
     }}>
@@ -107,7 +103,6 @@ export default function RunningTextOverlay() {
         overflow: "hidden",
         boxShadow: "0 -5px 25px rgba(0,0,0,0.5)"
       }}>
-        {/* Marquee Animation */}
         <div style={{
           display: "inline-block",
           paddingLeft: "100%",
@@ -119,13 +114,12 @@ export default function RunningTextOverlay() {
           {formatTickerText()}
         </div>
 
-        {/* Dynamic global CSS injection for smooth marquee scrolling without external packages */}
-        <style jsx>{`
+        <style dangerouslySetInnerHTML={{ __html: `
           @keyframes marquee {
             0% { transform: translate3d(0, 0, 0); }
             100% { transform: translate3d(-100%, 0, 0); }
           }
-        `}</style>
+        `}} />
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
 "use client";
-export const runtime = "edge";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -82,7 +81,6 @@ export default function VotingOverlay() {
     );
   }
 
-  // Calculate percentages
   const options = poll.options || [];
   const totalVotes = options.reduce((sum: number, opt: any) => sum + opt.votesCount, 0);
 
@@ -104,7 +102,6 @@ export default function VotingOverlay() {
         boxShadow: "0 20px 45px rgba(0,0,0,0.5)",
         color: "white"
       }}>
-        {/* Title */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
           <BarChart2 size={22} style={{ color: "#ffaa00" }} />
           <span style={{ fontSize: "18px", fontWeight: "800", letterSpacing: "-0.5px" }}>
@@ -112,7 +109,6 @@ export default function VotingOverlay() {
           </span>
         </div>
 
-        {/* Options */}
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           {options.map((opt: any) => {
             const percentage = totalVotes > 0 ? (opt.votesCount / totalVotes) * 100 : 0;
@@ -124,7 +120,6 @@ export default function VotingOverlay() {
                     Rp {opt.votesCount.toLocaleString("id-ID")} ({percentage.toFixed(1)}%)
                   </span>
                 </div>
-                {/* Bar */}
                 <div style={{
                   height: "10px",
                   background: "rgba(255,255,255,0.08)",
@@ -145,7 +140,6 @@ export default function VotingOverlay() {
           })}
         </div>
 
-        {/* Summary Footer */}
         <div style={{ textAlign: "right", color: "#888", fontSize: "11px", marginTop: "16px" }}>
           Total Poin Dukungan: Rp {totalVotes.toLocaleString("id-ID")}
         </div>

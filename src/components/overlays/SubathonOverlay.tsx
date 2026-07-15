@@ -1,5 +1,4 @@
 "use client";
-export const runtime = "edge";
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
@@ -31,7 +30,6 @@ export default function SubathonOverlay() {
     }
   };
 
-  // Sync remaining seconds back to server periodically (e.g. every 30 seconds) to avoid drift
   const syncTimerToServer = async () => {
     if (!isActive) return;
     try {
@@ -65,7 +63,6 @@ export default function SubathonOverlay() {
       const data = JSON.parse(event.data);
       if (data.type === "connect") return;
 
-      // Realtime subathon updates from donation webhooks
       const subathon = data.subathonTimer;
       if (subathon) {
         const diff = subathon.remainingSeconds - secondsRef.current;
@@ -88,7 +85,6 @@ export default function SubathonOverlay() {
     };
   }, [key]);
 
-  // Sync interval
   useEffect(() => {
     const syncInterval = setInterval(() => {
       syncTimerToServer();
@@ -97,7 +93,6 @@ export default function SubathonOverlay() {
     return () => clearInterval(syncInterval);
   }, [isActive]);
 
-  // Tick loop
   useEffect(() => {
     if (isActive) {
       intervalRef.current = setInterval(() => {
@@ -174,7 +169,6 @@ export default function SubathonOverlay() {
       fontFamily: "'Outfit', sans-serif",
     }}>
       <div style={{ position: "relative" }}>
-        {/* Glow background */}
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -198,7 +192,6 @@ export default function SubathonOverlay() {
           </div>
         </div>
 
-        {/* Floating extension text alerts */}
         {addedTimeText && (
           <div 
             className="pop-animation"

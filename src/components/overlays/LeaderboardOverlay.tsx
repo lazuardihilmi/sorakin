@@ -1,5 +1,4 @@
 "use client";
-export const runtime = "edge";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -12,19 +11,15 @@ export default function LeaderboardOverlay() {
   const [connected, setConnected] = useState(false);
   const [leaders, setLeaders] = useState<any[]>([]);
 
-  // Fetch top donors from the creator's donation list
   const fetchLeaderboard = async () => {
     try {
-      // Find creator username first
       const widgetRes = await fetch(`/api/creator/widgets?key=${key}`);
       const widgetData = await widgetRes.json();
       if (!widgetRes.ok || !widgetData.creatorUsername) return;
 
-      // Fetch all successful transactions for this creator
       const res = await fetch(`/api/donations?type=creator&status=Selesai&limit=100`);
       const data = await res.json();
       if (res.ok && data.donations) {
-        // Group by senderName and sum the donation amount
         const map: { [key: string]: number } = {};
         data.donations.forEach((d: any) => {
           const name = d.isAnonymous ? "Anonim" : d.senderName;
@@ -33,11 +28,10 @@ export default function LeaderboardOverlay() {
           }
         });
 
-        // Convert map to array and sort
         const sorted = Object.keys(map)
           .map(name => ({ name, totalAmount: map[name] }))
           .sort((a, b) => b.totalAmount - a.totalAmount)
-          .slice(0, 5); // Take top 5
+          .slice(0, 5);
 
         setLeaders(sorted);
       }
@@ -52,7 +46,6 @@ export default function LeaderboardOverlay() {
 
     fetchLeaderboard();
 
-    // Trigger update on new donations
     const eventSource = new EventSource(`/api/overlays/stream?key=${key}`);
 
     eventSource.onopen = () => {
@@ -63,7 +56,6 @@ export default function LeaderboardOverlay() {
       const data = JSON.parse(event.data);
       if (data.type === "connect") return;
 
-      // On new success donation, refresh leaderboard
       fetchLeaderboard();
     };
 
@@ -121,7 +113,6 @@ export default function LeaderboardOverlay() {
         padding: "20px",
         color: "white"
       }}>
-        {/* Title */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
           <Award size={20} style={{ color: "#f7797d" }} />
           <span style={{ fontSize: "16px", fontWeight: "800", letterSpacing: "-0.3px", background: "linear-gradient(to right, #f7797d, #fbd786, #c6ffdd)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
@@ -129,13 +120,12 @@ export default function LeaderboardOverlay() {
           </span>
         </div>
 
-        {/* Leaders List */}
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {leaders.map((lead: any, idx: number) => {
             let medalColor = "#ff4b2b";
-            if (idx === 0) medalColor = "#ffd700"; // Gold
-            else if (idx === 1) medalColor = "#c0c0c0"; // Silver
-            else if (idx === 2) medalColor = "#cd7f32"; // Bronze
+            if (idx === 0) medalColor = "#ffd700";
+            else if (idx === 1) medalColor = "#c0c0c0";
+            else if (idx === 2) medalColor = "#cd7f32";
 
             return (
               <div 

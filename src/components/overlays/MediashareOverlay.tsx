@@ -1,5 +1,4 @@
 "use client";
-export const runtime = "edge";
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
@@ -14,18 +13,15 @@ export default function MediashareOverlay() {
   const playerRef = useRef<any>(null);
   const scriptLoadedRef = useRef(false);
 
-  // Load active playlist item on mount
   const fetchActiveMedia = async () => {
     try {
       const res = await fetch(`/api/creator/widgets/mediashare?key=${key}`);
       const data = await res.json();
       if (res.ok && data.queue && data.queue.length > 0) {
-        // Find if there is a currently playing video
         const playing = data.queue.find((item: any) => item.status === "PLAYING");
         if (playing) {
           setCurrentVideo(playing);
         } else {
-          // If no video is active, play the first PENDING one
           setCurrentVideo(data.queue[0]);
           triggerPlayOnServer(data.queue[0].id);
         }
@@ -56,14 +52,12 @@ export default function MediashareOverlay() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, action: "finish" })
       });
-      // Fetch next video
       fetchActiveMedia();
     } catch (e) {
       console.error(e);
     }
   };
 
-  // Setup SSE stream
   useEffect(() => {
     if (!key) return;
     document.body.classList.add("obs-overlay-body");
@@ -80,7 +74,6 @@ export default function MediashareOverlay() {
       const data = JSON.parse(event.data);
       if (data.type === "connect") return;
 
-      // Handle mediashare actions
       if (data.type === "mediashare_play") {
         setCurrentVideo(data);
       } else if (data.type === "mediashare_skip" || data.type === "mediashare_finish") {
@@ -91,7 +84,6 @@ export default function MediashareOverlay() {
       } else if (data.type === "mediashare_clear") {
         setCurrentVideo(null);
       } else if (data.mediashareAdd) {
-        // If a new video is added to the database and we are currently idle, fetch active media
         if (!currentVideo) {
           fetchActiveMedia();
         }
@@ -108,7 +100,6 @@ export default function MediashareOverlay() {
     };
   }, [key, currentVideo?.id]);
 
-  // Load YouTube Iframe Player API
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -151,10 +142,9 @@ export default function MediashareOverlay() {
       events: {
         onReady: (e: any) => {
           e.target.playVideo();
-          e.target.setVolume(50); // Set moderate volume
+          e.target.setVolume(50);
         },
         onStateChange: (e: any) => {
-          // YT.PlayerState.ENDED is 0
           if (e.data === 0) {
             triggerFinishOnServer(currentVideo.id);
           }
@@ -203,12 +193,10 @@ export default function MediashareOverlay() {
           boxShadow: "0 20px 40px rgba(0,0,0,0.7)",
           width: "680px"
         }}>
-          {/* YouTube Video container */}
           <div style={{ width: "640px", height: "360px", borderRadius: "12px", overflow: "hidden", background: "#000" }}>
             <div id="mediashare-player"></div>
           </div>
 
-          {/* Requested Info details */}
           <div style={{ color: "#fff", textAlign: "center", width: "100%" }}>
             <div style={{ fontSize: "16px", fontWeight: "700", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", width: "100%" }}>
               {currentVideo.title}

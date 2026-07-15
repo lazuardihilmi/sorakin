@@ -1,5 +1,4 @@
 "use client";
-export const runtime = "edge";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -102,7 +101,6 @@ export default function MilestoneOverlay() {
         padding: "20px 24px",
         color: "white"
       }}>
-        {/* Title */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", width: "100%" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <Target size={20} style={{ color: "#00E5FF" }} />
@@ -115,7 +113,6 @@ export default function MilestoneOverlay() {
           </span>
         </div>
 
-        {/* Progress Bar */}
         <div style={{
           height: "20px",
           background: "rgba(255, 255, 255, 0.08)",
@@ -134,7 +131,6 @@ export default function MilestoneOverlay() {
           }}></div>
         </div>
 
-        {/* Amount description */}
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#aaa", marginTop: "10px", fontWeight: "600" }}>
           <span>Rp {milestone.currentAmount.toLocaleString("id-ID")}</span>
           <span>Target: Rp {milestone.targetAmount.toLocaleString("id-ID")}</span>

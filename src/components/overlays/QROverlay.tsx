@@ -1,5 +1,4 @@
 "use client";
-export const runtime = "edge";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -57,10 +56,8 @@ export default function QrOverlay() {
 
   if (!username) return null;
 
-  // Build the tipping page link
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const tipUrl = `${origin}/${username}`;
-  // Use QR Code API to generate QR Code image dynamically
   const qrCodeImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(tipUrl)}&color=000000&bgcolor=ffffff`;
 
   return (
@@ -86,7 +83,6 @@ export default function QrOverlay() {
           <span style={{ fontWeight: "800", fontSize: "15px" }}>DUKUNG KREATOR</span>
         </div>
 
-        {/* QR Code Container */}
         <div style={{
           background: "white",
           borderRadius: "16px",
@@ -102,7 +98,6 @@ export default function QrOverlay() {
           />
         </div>
 
-        {/* URL Description */}
         <div style={{ color: "#aaa", fontSize: "11px", wordBreak: "break-all" }}>
           Scan QR atau kunjungi:<br />
           <span style={{ color: "white", fontWeight: "700", fontSize: "13px", marginTop: "4px", display: "inline-block" }}>
