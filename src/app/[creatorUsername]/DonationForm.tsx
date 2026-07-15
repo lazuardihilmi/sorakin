@@ -405,79 +405,44 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
           </div>
         )}
 
-        {/* Interactive Tipping Mode Tabs */}
-        <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", gap: "12px", overflowX: "auto" }}>
-          <button
-            type="button"
-            onClick={() => setActiveTab("standard")}
-            className="btn"
-            style={{
-              padding: "8px 16px",
-              fontSize: "13px",
-              fontWeight: "600",
-              borderRadius: "100px",
-              backgroundColor: activeTab === "standard" ? "var(--primary)" : "transparent",
-              color: activeTab === "standard" ? "white" : "var(--text-main)",
-              border: activeTab === "standard" ? "1px solid var(--primary)" : "1px solid var(--border-color)"
-            }}
-          >
-            ☕ Dukungan Standar
-          </button>
-          
-          {widgetsData?.votingPoll?.isActive && (
+        {/* ── Interactive Tipping Mode Tabs ── */}
+        <div style={{
+          display: "flex",
+          gap: "6px",
+          padding: "4px",
+          background: "#f5f4f0",
+          borderRadius: "12px",
+          overflowX: "auto",
+          flexShrink: 0
+        }}>
+          {([
+            { key: "standard", label: "☕ Standar" },
+            ...(widgetsData?.votingPoll?.isActive ? [{ key: "voting", label: "🗳️ Polling" }] : []),
+            { key: "mediashare", label: "🎥 Media Share" },
+            ...(widgetsData?.soundboardSounds?.length > 0 ? [{ key: "soundboard", label: "🔊 Sound" }] : []),
+          ] as { key: string; label: string }[]).map((t) => (
             <button
+              key={t.key}
               type="button"
-              onClick={() => setActiveTab("voting")}
-              className="btn"
+              onClick={() => setActiveTab(t.key as any)}
               style={{
-                padding: "8px 16px",
-                fontSize: "13px",
-                fontWeight: "600",
-                borderRadius: "100px",
-                backgroundColor: activeTab === "voting" ? "var(--primary)" : "transparent",
-                color: activeTab === "voting" ? "white" : "var(--text-main)",
-                border: activeTab === "voting" ? "1px solid var(--primary)" : "1px solid var(--border-color)"
+                flex: "1 1 auto",
+                padding: "8px 14px",
+                fontSize: "12px",
+                fontWeight: "700",
+                borderRadius: "9px",
+                border: "none",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "background 0.15s, color 0.15s, box-shadow 0.15s",
+                background: activeTab === t.key ? "white" : "transparent",
+                color: activeTab === t.key ? "#1a1917" : "#9b9790",
+                boxShadow: activeTab === t.key ? "0 1px 6px rgba(0,0,0,0.12)" : "none",
               }}
             >
-              🗳️ Polling Suara
+              {t.label}
             </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("mediashare")}
-            className="btn"
-            style={{
-              padding: "8px 16px",
-              fontSize: "13px",
-              fontWeight: "600",
-              borderRadius: "100px",
-              backgroundColor: activeTab === "mediashare" ? "var(--primary)" : "transparent",
-              color: activeTab === "mediashare" ? "white" : "var(--text-main)",
-              border: activeTab === "mediashare" ? "1px solid var(--primary)" : "1px solid var(--border-color)"
-            }}
-          >
-            🎥 Media Share
-          </button>
-
-          {widgetsData?.soundboardSounds?.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setActiveTab("soundboard")}
-              className="btn"
-              style={{
-                padding: "8px 16px",
-                fontSize: "13px",
-                fontWeight: "600",
-                borderRadius: "100px",
-                backgroundColor: activeTab === "soundboard" ? "var(--primary)" : "transparent",
-                color: activeTab === "soundboard" ? "white" : "var(--text-main)",
-                border: activeTab === "soundboard" ? "1px solid var(--primary)" : "1px solid var(--border-color)"
-              }}
-            >
-              🔊 Soundboard
-            </button>
-          )}
+          ))}
         </div>
 
         {/* Tab Panels */}
@@ -701,89 +666,94 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
           />
         </div>
 
-        {/* Tipping Amount Input */}
+        {/* ── Tipping Amount ── */}
         <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label">Jumlah Tip (Rp)</label>
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="input-field"
-            style={{ fontSize: "18px", fontWeight: "700" }}
-            min={1000}
-            required
-          />
-          
-          {/* Quick values toggles */}
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" }}>
-            {quickAmountsList.map((val) => (
-              <button
-                key={val}
-                type="button"
-                onClick={() => setAmount(val)}
-                className="btn btn-secondary"
-                style={{ padding: "6px 12px", fontSize: "12px", borderRadius: "100px" }}
-              >
-                Rp {parseInt(val).toLocaleString("id-ID")}
-              </button>
-            ))}
+          <label className="form-label" style={{ fontWeight: "700", fontSize: "13px" }}>Jumlah Dukungan</label>
+
+          {/* Quick amount pills */}
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "12px" }}>
+            {quickAmountsList.map((val) => {
+              const isSelected = amount === val;
+              return (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setAmount(val)}
+                  style={{
+                    padding: "8px 18px",
+                    fontSize: "13px",
+                    fontWeight: "700",
+                    borderRadius: "100px",
+                    border: isSelected ? "2px solid var(--primary)" : "1.5px solid #e8e5e0",
+                    background: isSelected ? "var(--primary)" : "white",
+                    color: isSelected ? "white" : "#4b4844",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  Rp {parseInt(val).toLocaleString("id-ID")}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Manual amount input with Rp prefix */}
+          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+            <span style={{
+              position: "absolute",
+              left: "16px",
+              fontSize: "16px",
+              fontWeight: "800",
+              color: "#9b9790",
+              userSelect: "none"
+            }}>Rp</span>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="input-field"
+              style={{ fontSize: "18px", fontWeight: "800", paddingLeft: "48px", height: "52px" }}
+              min={1000}
+              required
+            />
           </div>
         </div>
 
-        {/* Payment Channels Grid */}
+        {/* ── Payment Method ── */}
         <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label">Metode Pembayaran</label>
+          <label className="form-label" style={{ fontWeight: "700", fontSize: "13px" }}>Metode Pembayaran</label>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
-            <button
-              type="button"
-              onClick={() => setPaymentType("qris")}
-              className="btn"
-              style={{
-                flexDirection: "column",
-                padding: "16px",
-                background: paymentType === "qris" ? "var(--primary-light)" : "white",
-                color: paymentType === "qris" ? "var(--primary-hover)" : "var(--text-main)",
-                border: paymentType === "qris" ? "2px solid var(--primary)" : "2px solid var(--border-color)",
-                borderRadius: "var(--border-radius-md)"
-              }}
-            >
-              <QrCode size={24} />
-              <span style={{ fontSize: "12px", fontWeight: "700", marginTop: "4px" }}>QRIS</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setPaymentType("gopay")}
-              className="btn"
-              style={{
-                flexDirection: "column",
-                padding: "16px",
-                background: paymentType === "gopay" ? "var(--primary-light)" : "white",
-                color: paymentType === "gopay" ? "var(--primary-hover)" : "var(--text-main)",
-                border: paymentType === "gopay" ? "2px solid var(--primary)" : "2px solid var(--border-color)",
-                borderRadius: "var(--border-radius-md)"
-              }}
-            >
-              <Sparkles size={24} />
-              <span style={{ fontSize: "12px", fontWeight: "700", marginTop: "4px" }}>GoPay</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setPaymentType("credit_card")}
-              className="btn"
-              style={{
-                flexDirection: "column",
-                padding: "16px",
-                background: paymentType === "credit_card" ? "var(--primary-light)" : "white",
-                color: paymentType === "credit_card" ? "var(--primary-hover)" : "var(--text-main)",
-                border: paymentType === "credit_card" ? "2px solid var(--primary)" : "2px solid var(--border-color)",
-                borderRadius: "var(--border-radius-md)"
-              }}
-            >
-              <CreditCard size={24} />
-              <span style={{ fontSize: "12px", fontWeight: "700", marginTop: "4px" }}>Kartu Kredit</span>
-            </button>
+            {[
+              { key: "qris", label: "QRIS", sublabel: "GoPay · OVO · Dana", emoji: "📱", color: "#e84142" },
+              { key: "gopay", label: "GoPay", sublabel: "Redirect GoPay", emoji: "💚", color: "#00AED6" },
+              { key: "credit_card", label: "Kartu", sublabel: "Kredit / Debit", emoji: "💳", color: "#4f46e5" },
+            ].map((pm) => {
+              const isActive = paymentType === pm.key;
+              return (
+                <button
+                  key={pm.key}
+                  type="button"
+                  onClick={() => setPaymentType(pm.key as any)}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "14px 8px",
+                    borderRadius: "12px",
+                    border: isActive ? `2px solid ${pm.color}` : "1.5px solid #e8e5e0",
+                    background: isActive ? `${pm.color}12` : "white",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  <span style={{ fontSize: "24px", lineHeight: 1 }}>{pm.emoji}</span>
+                  <span style={{ fontSize: "12px", fontWeight: "800", color: isActive ? pm.color : "#1a1917" }}>{pm.label}</span>
+                  <span style={{ fontSize: "10px", color: "#9b9790", fontWeight: "500", textAlign: "center" }}>{pm.sublabel}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -900,20 +870,41 @@ export default function DonationForm({ creator, sessionUser }: { creator: any; s
           )}
         </div>
 
-        {/* Submit button */}
+        {/* ── Submit Button ── */}
         <button
           type="submit"
           disabled={loading}
-          className="btn btn-primary"
-          style={{ width: "100%", padding: "14px 0", fontSize: "16px", display: "flex", justifyContent: "center", gap: "8px" }}
+          style={{
+            width: "100%",
+            padding: "16px 0",
+            fontSize: "16px",
+            fontWeight: "800",
+            borderRadius: "12px",
+            border: "none",
+            cursor: loading ? "not-allowed" : "pointer",
+            background: loading
+              ? "#d4d0ca"
+              : "linear-gradient(135deg, var(--primary) 0%, #e8a020 100%)",
+            color: loading ? "#9b9790" : "white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "10px",
+            boxShadow: loading ? "none" : "0 4px 16px rgba(245, 166, 35, 0.4)",
+            transition: "all 0.2s",
+            letterSpacing: "0.2px",
+          }}
         >
           {loading ? (
             <>
-              <RefreshCw className="spin" size={18} style={{ animation: "spin 1.5s linear infinite" }} />
+              <RefreshCw size={18} style={{ animation: "spin 1.5s linear infinite" }} />
               Memproses Pembayaran...
             </>
           ) : (
-            "Kirim Dukungan"
+            <>
+              <span style={{ fontSize: "20px" }}>☕</span>
+              Dukung {creator.name}
+            </>
           )}
         </button>
       </form>
