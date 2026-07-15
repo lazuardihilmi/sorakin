@@ -1869,7 +1869,7 @@ export default function DashboardPage() {
               <div style={{ display: "flex", gap: "8px", borderBottom: "1px solid var(--border-color)", paddingBottom: "12px", marginBottom: "24px", overflowX: "auto" }}>
                 {[
                   { id: "links", label: "🔗 Tautan OBS" },
-                  { id: "alert", label: "🔔 Kustom Alert" },
+                  { id: "alert", label: "🔔 Alert & Biaya Layanan" },
                   { id: "milestone", label: "🎯 Milestone Goal" },
                   { id: "subathon", label: "⏱️ Subathon Timer" },
                   { id: "voting", label: "🗳️ Polling Suara" },
@@ -1987,16 +1987,20 @@ export default function DashboardPage() {
                     <h3 style={{ fontSize: "16px", fontWeight: "700", borderTop: "1px solid var(--border-color)", paddingTop: "20px" }}>Integrasi & Pengaturan Tipping</h3>
                     
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-                      <div className="form-group">
-                        <label className="form-label">Fee ditanggung siapa?</label>
+                      <div className="form-group" style={{ background: "#f9f9f6", border: "1.5px solid var(--primary)", borderRadius: "12px", padding: "16px", marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontWeight: "800", color: "#1a1917" }}>💡 Biaya Layanan Ditanggung Oleh:</label>
                         <select
                           value={feeCoverage}
                           onChange={(e) => setFeeCoverage(e.target.value)}
                           className="input-field"
+                          style={{ borderColor: "var(--primary)", fontWeight: "600" }}
                         >
-                          <option value="CREATOR">Fee ditanggung kreator (Dipotong dari tip)</option>
-                          <option value="SUPPORTER">Fee ditanggung pendukung (Ditambah ke total bayar)</option>
+                          <option value="CREATOR">Kreator (Dipotong dari tip suporter)</option>
+                          <option value="SUPPORTER">Donatur / Suporter (Ditambahkan ke total bayar)</option>
                         </select>
+                        <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "6px", lineHeight: "1.4" }}>
+                          * Tentukan apakah biaya transaksi gerbang pembayaran ditanggung oleh Anda (kreator) atau dibebankan tambahan ke donatur.
+                        </p>
                       </div>
 
                       <div className="form-group">
