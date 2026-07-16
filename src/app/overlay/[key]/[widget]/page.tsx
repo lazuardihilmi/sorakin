@@ -1,6 +1,5 @@
 "use client";
 
-export const runtime = "edge";
 
 import { useParams } from "next/navigation";
 import SoundboardOverlay from "@/components/overlays/SoundboardOverlay";
